@@ -127,6 +127,9 @@ class Pipeline:
         # Dry run: what would have been written, kept in memory so that repeated polls in one process
         # neither re-bill model calls nor re-post anything.
         self._dry: dict[tuple[str, str], dict[str, Any]] = {}
+        # Failures counted in memory too, so the retry limit holds even when the ECM refuses the write
+        # that records a failure (a locked or checked-out document).
+        self._failures: dict[tuple[str, str | None], int] = {}
 
     # entry points
     def handle(self, event: Event) -> ProcessResult:
@@ -147,6 +150,8 @@ class Pipeline:
         try:
             return self._process(ref, review_requested=review_requested, review=review, manual=manual)
         except Exception as exc:
+            key = (ref.id, ref.version)
+            self._failures[key] = self._failures.get(key, 0) + 1
             self._record_failure(ref, exc)
             raise
 
@@ -157,6 +162,7 @@ class Pipeline:
             review_requested = False  # dry run: the request was already answered in memory
         cls = self._read(ref, NS_CLASSIFICATION)
         failures = int(cls.get("failure_count") or 0) if cls.get("failed_version") == ref.version else 0
+        failures = max(failures, self._failures.get((ref.id, ref.version), 0))
         if failures >= self.cfg.max_attempts and not manual:
             return ProcessResult(
                 document=ref,

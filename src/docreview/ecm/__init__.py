@@ -14,6 +14,11 @@ _BUILTIN = {
     "local": "docreview.ecm.local:LocalFolderAdapter",
     "box": "docreview.ecm.box:BoxAdapter",
     "sharepoint": "docreview.ecm.sharepoint:SharePointAdapter",
+    # Example adapters: follow each vendor's documented API but are not tested against a live system.
+    "veeva_vault": "docreview.ecm.veeva_vault:VeevaVaultAdapter",
+    "mfiles": "docreview.ecm.mfiles:MFilesAdapter",
+    "alfresco": "docreview.ecm.alfresco:AlfrescoAdapter",
+    "s3": "docreview.ecm.s3:S3Adapter",
 }
 ENTRY_POINT_GROUP = "docreview.adapters"
 

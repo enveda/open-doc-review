@@ -130,3 +130,16 @@ def test_fallbacks_must_be_off_off_the_claude_api(workspace):
         load_config(_rewrite(workspace, lambda raw: raw["llm"].update(provider="bedrock")))
     cfg = load_config(_rewrite(workspace, lambda raw: raw["llm"].update(provider="bedrock", fallbacks="off")))
     assert cfg.llm.provider == "bedrock"
+
+
+def test_every_builtin_adapter_imports_and_has_every_port_method():
+    import importlib
+
+    from docreview.ecm import _BUILTIN
+
+    port = {n for n, _ in inspect.getmembers(ECMAdapter, inspect.isfunction) if not n.startswith("_")}
+    for name, target in _BUILTIN.items():
+        module, _, attr = target.partition(":")
+        cls = getattr(importlib.import_module(module), attr)
+        assert port <= set(dir(cls)), f"{name} lacks {port - set(dir(cls))}"
+        assert not {"delete", "move", "rename", "upload"} & set(dir(cls)), name

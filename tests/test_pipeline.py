@@ -244,3 +244,14 @@ def test_success_clears_failure_record_with_none_on_merging_adapters(workspace, 
     run_once(pipeline)
     final = [v for ns, v in writes if ns == NS_CLASSIFICATION and "processed_version" in v][-1]
     assert final["failure_count"] is None and final["last_error"] is None
+
+
+def test_retry_limit_holds_when_failure_cannot_be_recorded(workspace, pipeline, fake_model, monkeypatch):
+    def locked(ref, namespace, values):
+        raise PermissionError("document is checked out")
+
+    monkeypatch.setattr(pipeline.ecm, "write_metadata", locked)
+    for _ in range(6):
+        run_once(pipeline)
+    classify_calls = sum(1 for r, _, _ in fake_model.requests if r.task == "classify")
+    assert classify_calls == 2 * 3  # two documents, stopped at max_attempts each, in memory

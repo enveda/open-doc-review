@@ -41,7 +41,7 @@ Every key under `options` is passed to your constructor as a keyword argument, p
 | `get(id)` | The current name, version and parent folder (`parent_id`) of a document. Refuse ids outside the area you are configured for. |
 | `download(ref)` | The bytes and media type. When `ref.version` is set, return that version or raise. PDF, plain text and PNG/JPEG/GIF/WebP are sent to the model as-is; convert Office files to PDF in the adapter if your ECM offers renditions. |
 | `read_metadata` / `write_metadata` | Three namespaces, stored however your ECM stores metadata. A write may replace the namespace or merge into it; either way a `None` value means "remove this key". Writes must be idempotent. |
-| `find(doc_type, criteria)` | Documents whose classification is `doc_type` and whose extracted fields equal every value in `criteria`. Compare case-insensitively with trimmed whitespace. Bind values as query parameters; never paste them into a query string. Newest first. `scope` is a `parent_id` (for rules with `same_folder: true`). |
+| `find(doc_type, criteria)` | Documents whose classification is `doc_type` and whose extracted fields equal every value in `criteria`. Compare case-insensitively with trimmed whitespace. Bind values as query parameters; never paste them into a query string. Newest first. `scope` is a `parent_id` (for rules with `same_folder: true`). Adapters without folders (for example Veeva Vault and M-Files) leave `parent_id` as None, so `same_folder` has no effect there. |
 | `post_comment` / `list_comments` | Plain-text comments on the document. The engine checks `list_comments` so it never posts the same finding twice. |
 
 ## Metadata the engine writes
