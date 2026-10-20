@@ -66,14 +66,24 @@ every key listed in §3. It prints one line per problem.
 
 ## 3. Metadata templates
 
-Each namespace the pipeline writes maps to one enterprise metadata template. **Field keys must
-equal the keys the pipeline writes**: Box rejects a key that the template does not define.
+**Generate them:** `docreview templates` prints a ready-to-run box-sdk-gen script that creates every
+template for your config, with a description on each field and the reference-match fields marked.
+It also prints the `templates:` block to paste into `ecm.options`.
 
-| Namespace | Template (example key) | Fields (key: Box type) |
+```bash
+docreview -c docreview.yaml templates > box_templates.py
+python box_templates.py        # needs an admin-authorized app and the BOX_* variables; reports templates that exist
+```
+
+Each namespace the pipeline writes maps to one enterprise metadata template. **Field keys must
+equal the keys the pipeline writes**: Box rejects a key that the template does not define. By hand,
+that means:
+
+| Namespace | Template (default key) | Fields |
 |---|---|---|
-| `classification` | `docClassification` | `doc_type`: string, `classified_at`: string, `run_id`: string, `fields_version`: string, `processed_version`: string, `failed_version`: string, `failure_count`: float, `last_error`: string |
-| `review` | `docReview` | `outcome`: string, `finding_counts`: string, `reviewed_version`: string, `reviewed_at`: string, `run_id`: string, `references`: string, `requested`: enum (`true`, `false`) |
-| `fields` | one per document type, e.g. `docFieldsInvoice` | one field per entry in that type's `fields:` config, with the same `name` as key |
+| `classification` | `docClassification` | `doc_type`, `classified_at`, `run_id`, `fields_version`, `processed_version`, `failed_version`, `last_error`: string; `failure_count`: float |
+| `review` | `docReview` | `outcome`, `finding_counts`, `reviewed_version`, `reviewed_at`, `run_id`, `references`: string; `requested`: enum (`true`, `false`) |
+| `fields` | `docFields<DocType>`, one per document type | one field per entry in that type's `fields:` config, with the same `name` as key |
 
 Notes:
 
@@ -81,7 +91,7 @@ Notes:
   objects. Booleans are stored as `"true"` / `"false"`. Timestamps (`classified_at`, `reviewed_at`)
   are ISO-8601 strings.
 - Config type → Box type: `string` → string, `number` / `integer` → float, `date` → date,
-  `boolean` → string. Box returns numbers as floats (`failure_count` reads back as `2.0`).
+  `boolean` → enum (`true`, `false`), and JSON values → string. Box returns numbers as floats (`failure_count` reads back as `2.0`).
 - Date fields: the pipeline writes `YYYY-MM-DD`. When the Box field is a date field, the adapter
   writes `YYYY-MM-DDT00:00:00Z` and reads it back as `YYYY-MM-DD`. It learns field types from the
   template schema, read once per template per process. String fields are stored as written.
@@ -95,43 +105,6 @@ Notes:
   The pipeline writes `requested: false` with every review result, which clears it. If you point
   `review_trigger_field` at a field the pipeline doesn't write, the adapter removes that field
   when it writes the review result instead.
-
-Create the templates with this script. It is a one-off and needs an admin-authorized app.
-`templates.json` is a list of `{"key", "display_name", "fields": [{"key", "type", "options"?}]}`:
-
-```python
-import json, os
-from box_sdk_gen import BoxCCGAuth, BoxClient, CCGConfig, CreateMetadataTemplateFields
-from box_sdk_gen import CreateMetadataTemplateFieldsOptionsField as Option
-
-client = BoxClient(BoxCCGAuth(CCGConfig(
-    os.environ["BOX_CLIENT_ID"], os.environ["BOX_CLIENT_SECRET"], enterprise_id=os.environ["BOX_ENTERPRISE_ID"])))
-for t in json.load(open("templates.json")):
-    client.metadata_templates.create_metadata_template(
-        "enterprise", t["display_name"], template_key=t["key"],
-        fields=[CreateMetadataTemplateFields(type=f["type"], key=f["key"], display_name=f.get("display_name", f["key"]),
-                                             options=[Option(key=o) for o in f["options"]] if "options" in f else None)
-                for f in t["fields"]])
-    print("created", t["key"])
-```
-
-```json
-[
-  {"key": "docClassification", "display_name": "Document classification",
-   "fields": [{"key": "doc_type", "type": "string"}, {"key": "classified_at", "type": "string"},
-              {"key": "run_id", "type": "string"}, {"key": "fields_version", "type": "string"},
-              {"key": "processed_version", "type": "string"}, {"key": "failed_version", "type": "string"},
-              {"key": "failure_count", "type": "float"}, {"key": "last_error", "type": "string"}]},
-  {"key": "docReview", "display_name": "Document review",
-   "fields": [{"key": "outcome", "type": "string"}, {"key": "finding_counts", "type": "string"},
-              {"key": "reviewed_version", "type": "string"}, {"key": "reviewed_at", "type": "string"},
-              {"key": "run_id", "type": "string"}, {"key": "references", "type": "string"},
-              {"key": "requested", "type": "enum", "options": ["true", "false"], "display_name": "Review requested"}]},
-  {"key": "docFieldsInvoice", "display_name": "Invoice fields",
-   "fields": [{"key": "invoice_number", "type": "string"}, {"key": "po_number", "type": "string"},
-              {"key": "total", "type": "float"}, {"key": "invoice_date", "type": "date"}]}
-]
-```
 
 ## 4. Events
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import re
 from urllib.parse import unquote
 
 import pytest
@@ -172,6 +173,19 @@ def test_classification_merges_and_mirrors_doc_type():
     assert graph.fields["1"][f"{P}DocType"] == "invoice"
 
 
+def test_a_person_edits_doc_type_in_its_own_column():
+    graph = FakeGraph()
+    adapter = _adapter(graph)
+    adapter.write_metadata(_ref(), NS_CLASSIFICATION, {"doc_type": "invoice", "run_id": "r1"})
+    graph.fields["1"][f"{P}DocType"] = "purchase_order"  # corrected in the library view
+    assert adapter.read_metadata(_ref(), NS_CLASSIFICATION)["doc_type"] == "purchase_order"
+    adapter.write_metadata(_ref(), NS_CLASSIFICATION, {"processed_version": "c1"})
+    adapter.write_metadata(_ref(), NS_REVIEW, {"outcome": "no_findings"})
+    adapter.write_metadata(_ref(), NS_FIELDS, {"po_number": "PO-1"})
+    assert graph.fields["1"][f"{P}DocType"] == "purchase_order"
+    assert json.loads(graph.fields["1"][f"{P}Classification"])["doc_type"] == "purchase_order"
+
+
 def test_review_requested_is_its_own_column_and_the_write_clears_it():
     graph = FakeGraph()
     adapter = _adapter(graph)
@@ -271,3 +285,28 @@ def test_no_destructive_calls_exist():
     assert source.count("self._http.post(") == 1 and "self._http.request(" in source
     for word in ("createUploadSession", "/copy", "DELETE", "PUT", ".delete(", ".put("):
         assert word not in source
+
+
+def _example_schema():
+    from pathlib import Path
+
+    from docreview.config import load_config
+    from docreview.schema import build_schema, match_fields
+
+    cfg = load_config(Path(__file__).resolve().parents[1] / "examples" / "generic" / "docreview.yaml")
+    return build_schema(cfg), match_fields(cfg)
+
+
+def test_templates_render_pnp_columns_from_the_example_config():
+    schema, searched = _example_schema()
+    out = SharePointAdapter.render_schema(schema, {"column_prefix": "DR", "library": "Shared Documents"}, searched)
+    assert "$list = 'Shared Documents'" in out
+    for ns in schema:
+        for key in ns.keys:
+            assert key.name in out
+            if ns.doc_type:
+                assert f'Name="DR_{key.name}"' in out
+    lines = [line for line in out.splitlines() if line.startswith("Add-PnPFieldFromXml")]
+    indexed = {re.search(r'Name="(\w+)"', line).group(1) for line in lines if 'Indexed="TRUE"' in line}
+    assert indexed == {"DRDocType", *(f"DR_{f}" for f in set().union(*searched.values()))}
+    assert len(lines) == len({re.search(r'Name="(\w+)"', line).group(1) for line in lines})  # one per column

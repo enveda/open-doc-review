@@ -287,3 +287,23 @@ def test_no_destructive_calls_exist():
     code = source.split('"""', 2)[2].lower()  # after the module docstring, which names what it never does
     for word in ("delete", "copy", "upload", "multipart", "restore", "put_object_acl", "tagging"):
         assert word not in code
+
+
+def test_templates_render_the_sidecar_shape_and_a_sidecar_only_policy():
+    from pathlib import Path
+
+    from docreview.config import load_config
+    from docreview.ecm._render import header
+    from docreview.schema import build_schema, match_fields
+
+    cfg = load_config(Path(__file__).parents[1] / "examples" / "generic" / "docreview.yaml")
+    schema = build_schema(cfg)
+    out = S3Adapter.render_schema(schema, {"bucket": "docs", "prefix": "lib/"}, match_fields(cfg))
+    assert out.startswith(header("Amazon S3", "x").splitlines()[0])
+    for ns in schema:
+        for key in ns.keys:
+            assert key.name in out, key.name
+    policy = json.loads(out[out.index("\n{") : out.rindex("}") + 1])
+    put = [st for st in policy["Statement"] if st["Action"] == "s3:PutObject"]
+    assert [st["Resource"] for st in put] == ["arn:aws:s3:::docs/lib/*.docreview.json"]
+    assert "arn:aws:s3:::<bucket>" in S3Adapter.render_schema(schema, {}, {})  # placeholders without options

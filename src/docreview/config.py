@@ -142,6 +142,11 @@ def _parse_fields(dt: str, raw: dict[str, Any] | None) -> tuple[FieldSpec, ...]:
         spec = spec or {}
         if isinstance(spec, str):
             spec = {"description": spec}
+        if unknown := set(spec) - {"type", "description"}:
+            raise ConfigError(
+                f"{dt}.fields.{name}: unknown keys {sorted(map(str, unknown))} "
+                "(a comma inside an unquoted description splits it; quote the description)"
+            )
         ftype = spec.get("type", "string")
         if ftype not in FIELD_TYPES:
             raise ConfigError(f"{dt}.fields.{name}: type must be one of {sorted(FIELD_TYPES)}")

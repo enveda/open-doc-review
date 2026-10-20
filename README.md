@@ -63,6 +63,7 @@ uv sync                                   # or: pip install -e .
 export ANTHROPIC_API_KEY=...              # or: ant auth login
 cd examples/generic
 uv run docreview check                    # validates config, prompts and the adapter
+uv run docreview templates                # shows the metadata it will write (for Box/SharePoint: the setup script)
 uv run docreview run --once               # reviews the sample documents in library/
 ```
 
@@ -157,6 +158,7 @@ What the statuses mean:
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how a document flows through, and the design rules
 - [docs/CONFIGURATION.md](docs/CONFIGURATION.md): every config key
+- [docs/METADATA.md](docs/METADATA.md): every metadata key written on a document, with examples, and how each ECM stores it
 - [docs/PROMPTS.md](docs/PROMPTS.md): writing your own prompts, and the variables available
 - [docs/ADAPTERS.md](docs/ADAPTERS.md): writing an adapter for your ECM
 - [docs/BOX.md](docs/BOX.md): setting up the Box adapter

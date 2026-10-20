@@ -17,6 +17,7 @@ from typing import Any
 
 from docreview.ecm.base import NS_CLASSIFICATION, NS_FIELDS, NS_REVIEW
 from docreview.models import DocumentContent, DocumentRef, Event
+from docreview.schema import CLASSIFICATION_KEYS, REVIEW_KEYS
 
 _FILE_FIELDS = ["name", "file_version", "modified_at", "parent", "path_collection"]
 _KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")  # a metadata field key, safe to name in a query
@@ -24,12 +25,38 @@ _FIND_CAP = 500  # results read before sorting newest first (Box returns them un
 _EVENT_PAGES = 5  # pages of the event stream read per poll
 _OFF = {"", "0", "false", "no", "off", "none"}
 _DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-# Keys the pipeline writes; ``check`` confirms the templates define them (Box rejects unknown keys).
-CLASSIFICATION_KEYS = (
-    "doc_type", "classified_at", "run_id", "fields_version",
-    "processed_version", "failed_version", "failure_count", "last_error",
-)  # fmt: skip
-REVIEW_KEYS = ("outcome", "finding_counts", "reviewed_version", "reviewed_at", "run_id", "references", "requested")
+# Box metadata field type per schema type (booleans are an enum, so people get a true/false dropdown)
+_BOX_TYPES = {
+    "string": "string",
+    "number": "float",
+    "integer": "float",
+    "date": "date",
+    "boolean": "enum",
+    "json": "string",
+}
+_TEMPLATE_SCRIPT = """
+import os
+from box_sdk_gen import BoxAPIError, BoxCCGAuth, BoxClient, CCGConfig, CreateMetadataTemplateFields
+from box_sdk_gen import CreateMetadataTemplateFieldsOptionsField as Option
+
+TEMPLATES = {templates}
+
+client = BoxClient(BoxCCGAuth(CCGConfig(
+    os.environ["BOX_CLIENT_ID"], os.environ["BOX_CLIENT_SECRET"], enterprise_id=os.environ["BOX_ENTERPRISE_ID"])))
+for t in TEMPLATES:
+    fields = [CreateMetadataTemplateFields(type=f["type"], key=f["key"], display_name=f["display_name"],
+                                           description=f["description"],
+                                           options=[Option(key=o) for o in f["options"]] if f.get("options") else None)
+              for f in t["fields"]]
+    try:
+        client.metadata_templates.create_metadata_template("enterprise", t["display_name"], template_key=t["key"],
+                                                           fields=fields)
+        print("created", t["key"])
+    except BoxAPIError as exc:
+        if exc.response_info.status_code != 409:
+            raise
+        print("exists already (add any missing field in the Admin Console):", t["key"])
+"""
 
 
 def _sdk():
@@ -392,6 +419,43 @@ class BoxAdapter:
             offset += len(entries)
             if not entries or offset >= int(page.get("total_count") or 0):
                 return texts
+
+    # --- setup generator (called by ``docreview templates``; no instance, no network) -------------
+    @classmethod
+    def render_schema(cls, schema, options, match_fields) -> str:  # noqa: ANN001 - see docreview.schema
+        """A box-sdk-gen script creating every template, plus the ``templates`` option to paste."""
+        from docreview.ecm._render import header, key_lines
+
+        given = dict((options or {}).get("templates") or {})
+        keys = {NS_CLASSIFICATION: given.get(NS_CLASSIFICATION) or "docClassification"}
+        keys[NS_REVIEW] = given.get(NS_REVIEW) or "docReview"
+        per_type = dict(given.get(NS_FIELDS) or {})
+        lines, templates = [header("Box", "Run it once with an admin-authorized app: python box_templates.py")], []
+        for ns in schema:
+            if ns.doc_type:
+                title = "".join(p.title() for p in re.split(r"[^A-Za-z0-9]+", ns.doc_type) if p)
+                key = per_type.setdefault(ns.doc_type, f"docFields{title}")
+                display = f"{ns.doc_type} fields"
+            else:
+                key = keys[ns.name]
+                display = "Document classification" if ns.name == NS_CLASSIFICATION else "Document review"
+            searched = match_fields.get(ns.doc_type, set()) if ns.doc_type else set()
+            lines.append(f"# {key}: {ns.description}")
+            lines += key_lines(ns) + [f"#   {f}: searched by reference rules (find)" for f in sorted(searched)]
+            fields = []
+            for k in ns.keys:
+                note = " Searched by reference rules (find)." if k.name in searched else ""
+                field = {"key": k.name, "type": _BOX_TYPES[k.type], "display_name": k.name}
+                field["description"] = k.description + note
+                if k.type == "boolean":
+                    field["options"] = ["true", "false"]
+                fields.append(field)
+            templates.append({"key": key, "display_name": display, "fields": fields})
+        lines.append("#\n# docreview.yaml, under ecm.options:\n#   templates:")
+        lines += [f"#     {ns}: {keys[ns]}" for ns in (NS_CLASSIFICATION, NS_REVIEW)] + ["#     fields:"]
+        lines += [f"#       {dt}: {key}" for dt, key in per_type.items()]
+        lines.append(_TEMPLATE_SCRIPT.format(templates=json.dumps(templates, indent=4)))
+        return "\n".join(lines)
 
     # --- setup check (called by ``docreview check``) -----------------------------------------------
     def check(self, doc_types: list[str]) -> list[str]:

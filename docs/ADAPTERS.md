@@ -58,7 +58,7 @@ People may edit these values in the ECM, and the engine respects their edits:
 - Fields a person corrects are kept until a new version arrives.
 - Setting `review.requested = true` asks for a re-review. Have `poll` return a `review_requested` event for it.
 
-If your ECM needs a schema (Box templates, SharePoint columns), create it from the table above.
+If your ECM needs a schema (templates, columns, properties), add a `render_schema` classmethod so `docreview templates` can generate it. See `docreview/schema.py`, `ecm/local.py` for the simplest example, and [METADATA.md](METADATA.md).
 
 ## Optional: `check`
 

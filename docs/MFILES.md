@@ -35,6 +35,12 @@ which changes only when the file content changes.
 
 ## 1. Create the properties
 
+**Generate the list:** `docreview templates` prints every property definition to create for your
+config (name, data type, purpose; the fields reference rules search on are marked), and the
+`properties:` block for `ecm.options` with an `<id of '…'>` placeholder for each id.
+
+By hand:
+
 In M-Files Admin → the vault → Metadata Structure → Property Definitions, create (names are yours):
 
 | Purpose | Data type | Example name |

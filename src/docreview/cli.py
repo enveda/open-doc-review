@@ -12,7 +12,7 @@ from pathlib import Path
 
 from docreview.audit import AuditLog
 from docreview.config import Config, ConfigError, load_config
-from docreview.ecm import load_adapter
+from docreview.ecm import adapter_class, load_adapter
 from docreview.llm import AIService, AnthropicModelClient, ModelClient
 from docreview.models import Event
 from docreview.pipeline import Pipeline
@@ -49,6 +49,23 @@ def cmd_check(cfg: Config) -> int:
     if missing or problems:
         return 1
     print(f"OK: {len(cfg.doc_types)} document types, adapter {cfg.adapter!r}, prompts in {cfg.prompt_dirs[0]}")
+    return 0
+
+
+def cmd_templates(cfg: Config, fmt: str, adapter_name: str | None) -> int:
+    """Print the metadata setup an ECM needs for this config. No connection is made."""
+    from docreview.schema import build_schema, match_fields, render_json
+
+    schema = build_schema(cfg)
+    name = adapter_name or cfg.adapter
+    options = cfg.adapter_options if name == cfg.adapter else {}
+    cls = adapter_class(name)
+    if fmt == "json" or not hasattr(cls, "render_schema"):
+        if fmt != "json":
+            print(f"# adapter {name!r} has no native schema renderer; showing the generic schema")
+        print(render_json(schema))
+        return 0
+    print(cls.render_schema(schema, options, match_fields(cfg)))
     return 0
 
 
@@ -103,6 +120,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-v", "--verbose", action="store_true")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check", help="validate config, prompts and adapter connection")
+    tpl = sub.add_parser("templates", help="print the metadata templates / columns / fields your ECM needs")
+    tpl.add_argument("--format", choices=["native", "json"], default="native")
+    tpl.add_argument("--adapter", help="render for another adapter than the one in the config")
     run = sub.add_parser("run", help="poll the ECM and process new documents")
     run.add_argument("--once", action="store_true", help="one poll, then exit (for cron)")
     run.add_argument("--interval", type=int, default=60, help="seconds between polls")
@@ -124,6 +144,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "check":
         return cmd_check(cfg)
+    if args.cmd == "templates":
+        return cmd_templates(cfg, args.format, args.adapter)
     pipeline = build(cfg)
     if args.cmd == "run":
         if args.once:

@@ -269,3 +269,29 @@ def test_batch_record_example_reviews_against_its_master_record(full_workspace, 
     review = [r for r, _, _ in fake_model.requests if r.task == "review" and "EBR" in r.attachments[0].content.ref.name]
     assert [a.label for a in review[0].attachments] == ["Document under review", "Master batch record"]
     assert "executed batch record" in review[0].instruction
+
+
+def test_every_key_written_is_declared_in_the_schema(full_workspace, fake_model, monkeypatch):
+    """docreview templates is generated from docreview.schema, so the two must never drift apart."""
+    from docreview.cli import build
+    from docreview.config import load_config
+    from docreview.schema import build_schema
+
+    cfg = load_config(full_workspace / "docreview.yaml")
+    pipeline = build(cfg, model_client=fake_model)
+    declared = {(ns.name, ns.doc_type): {k.name for k in ns.keys} for ns in build_schema(cfg)}
+    written: list[tuple[str, str | None, set[str]]] = []
+    real = pipeline.ecm.write_metadata
+
+    def spy(ref, namespace, values):
+        doc_type = (
+            pipeline.ecm.read_metadata(ref, NS_CLASSIFICATION).get("doc_type") if namespace == NS_FIELDS else None
+        )
+        written.append((namespace, doc_type, set(values)))
+        real(ref, namespace, values)
+
+    monkeypatch.setattr(pipeline.ecm, "write_metadata", spy)
+    run_once(pipeline)
+    assert {ns for ns, _, _ in written} == {NS_CLASSIFICATION, NS_FIELDS, NS_REVIEW}
+    for ns, doc_type, keys in written:
+        assert keys <= declared[(ns, doc_type)], (ns, doc_type, keys - declared[(ns, doc_type)])

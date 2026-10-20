@@ -51,13 +51,28 @@ Find the site id with `GET /sites/contoso.sharepoint.com:/sites/Quality?$select=
 
 ## 3. Create the library columns
 
+**Generate them:** `docreview templates` prints a PnP PowerShell script that adds every column below
+for your config, with your `column_prefix` and `library`, a description on each column, and
+`Indexed="TRUE"` on `DocType` and on every field a reference rule matches on.
+
+```bash
+docreview -c docreview.yaml templates > columns.ps1
+```
+
+```powershell
+Connect-PnPOnline -Url https://contoso.sharepoint.com/sites/Quality -Interactive
+./columns.ps1
+```
+
+The columns, if you create them by hand:
+
 SharePoint columns are flat, so the adapter stores each namespace as columns of the library
 (`P` = `column_prefix`, default `DocReview`):
 
 | Column (internal name) | Type | Holds |
 |---|---|---|
 | `PClassification` | Multiple lines of text, **plain text** | classification as JSON: `doc_type`, `classified_at`, `run_id`, `fields_version`, `processed_version`, `failed_version`, `failure_count`, `last_error` |
-| `PDocType` | Single line of text, **indexed** | a copy of `doc_type`, so `find` can filter on it |
+| `PDocType` | Single line of text, **indexed** | the document type id. **The source of truth:** a person corrects the type here (typing the configured id, e.g. `purchase_order`); reads use it over the JSON, every write keeps it, and `find` filters on it |
 | `PReview` | Multiple lines of text, plain text | review as JSON: `outcome`, `finding_counts`, `reviewed_version`, `reviewed_at`, `run_id`, `references` |
 | `PReviewRequested` | Yes/No | the review's `requested`. A person ticks it to ask for a re-review; the review write clears it. |
 | `PComments` | Multiple lines of text, plain text | the comments (see §5) |
@@ -68,23 +83,6 @@ Field types: config `string` → Single line of text, `number` / `integer` → N
 
 Use plain text (not rich text) for the multi-line columns, with **Append changes to existing text**
 off. Rich text wraps the JSON in HTML.
-
-PnP PowerShell (library `Documents`, prefix `DocReview`, two example fields):
-
-```powershell
-$list = "Documents"
-$note = '<Field Type="Note" Name="{0}" StaticName="{0}" DisplayName="{0}" RichText="FALSE" NumLines="6" AppendOnly="FALSE" />'
-foreach ($n in "DocReviewClassification", "DocReviewReview", "DocReviewComments") {
-    Add-PnPFieldFromXml -List $list -FieldXml ($note -f $n)
-}
-Add-PnPField -List $list -InternalName DocReviewDocType -DisplayName DocReviewDocType -Type Text
-Add-PnPField -List $list -InternalName DocReviewReviewRequested -DisplayName "Review requested" -Type Boolean
-Add-PnPField -List $list -InternalName DocReview_po_number -DisplayName "PO number" -Type Text
-Add-PnPField -List $list -InternalName DocReview_invoice_date -DisplayName "Invoice date" -Type DateTime
-foreach ($n in "DocReviewDocType", "DocReview_po_number") {
-    Set-PnPField -List $list -Identity $n -Values @{Indexed = $true}
-}
-```
 
 Set the internal name when you create a column: renaming one later changes only its display name.
 

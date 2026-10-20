@@ -40,7 +40,12 @@ show the field on the object's page layout, or on a related-object section of th
 
 ## 1. Create the custom object
 
-Admin → Configuration → Objects → Create. The default name is `docreview_result__c`; any name
+**Generate the field list:** `docreview templates` prints this object's fields for your config,
+including one text field per field a reference rule matches on, the JSON keys each long-text field
+holds, and the `match_fields` block to paste into `ecm.options`. It prints a table rather than an
+MDL script: create the object in Admin → Configuration → Objects, or write the MDL from the table.
+
+The fields, by hand: Admin → Configuration → Objects → Create. The default name is `docreview_result__c`; any name
 works if you set `result_object`.
 
 | Field | Type | Notes |

@@ -31,6 +31,15 @@ _DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _FIND_CAP = 500
 _TO_PDF = {".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".rtf", ".odt", ".ods", ".odp"}  # Graph renders these
 _RETRIES = 3
+# SharePoint field XML per schema type
+_SP_TYPES = {
+    "string": 'Type="Text"',
+    "number": 'Type="Number"',
+    "integer": 'Type="Number" Decimals="0"',
+    "date": 'Type="DateTime" Format="DateOnly"',
+    "boolean": 'Type="Boolean"',
+    "json": 'Type="Note" RichText="FALSE" NumLines="6" AppendOnly="FALSE"',
+}
 _SEPARATOR = "\n\n" + "─" * 24 + "\n\n"  # between comments in the comments column
 _STAMP = re.compile(r"^\[[^\]\n]*\]\n")  # "[2026-10-20T12:00:00Z]\n" before each comment
 
@@ -78,7 +87,8 @@ class SharePointAdapter:
     Metadata lives in library columns (``P`` = ``column_prefix``):
 
     - ``PClassification`` / ``PReview``: multi-line text holding the namespace as JSON;
-    - ``PDocType``: single-line text, a copy of ``doc_type`` that ``find`` can filter on;
+    - ``PDocType``: single-line text, the document type: people correct it here, reads use it over the
+      JSON, and ``find`` filters on it;
     - ``PReviewRequested``: Yes/No, the review namespace's ``requested`` (ticked by people);
     - ``P_<field>``: one column per extracted field;
     - ``PComments``: multi-line text holding the comments (Graph has no file-comment API).
@@ -289,7 +299,10 @@ class SharePointAdapter:
 
     def _namespace(self, fields: Mapping[str, Any], namespace: str) -> dict[str, Any]:
         if namespace == NS_CLASSIFICATION:
-            return _json(fields.get(self.col_classification))
+            out = _json(fields.get(self.col_classification))
+            if str(fields.get(self.col_doc_type) or "").strip():
+                out["doc_type"] = str(fields[self.col_doc_type]).strip()  # the column people edit wins over the JSON
+            return out
         if namespace == NS_REVIEW:
             values, requested = _json(fields.get(self.col_review)), fields.get(self.col_requested) is True
             return {**values, "requested": requested} if values or requested else {}
@@ -354,7 +367,7 @@ class SharePointAdapter:
             col = self.col_classification if namespace == NS_CLASSIFICATION else self.col_review
             patch[col] = json.dumps(merged, sort_keys=True, default=str)
             if namespace == NS_CLASSIFICATION:
-                patch[self.col_doc_type] = merged.get("doc_type")
+                patch[self.col_doc_type] = merged.get("doc_type")  # merged already took a person's edit
         elif namespace == NS_FIELDS:
             types = self.columns()
             for k, v in values.items():
@@ -390,6 +403,55 @@ class SharePointAdapter:
         raw = self._fields(ref).get(self.col_comments) or ""
         return [e for e in str(raw).split(_SEPARATOR) if e.strip()]
 
+    # --- setup generator (called by ``docreview templates``; no instance, no network) -------------
+    @classmethod
+    def render_schema(cls, schema, options, match_fields) -> str:  # noqa: ANN001 - see docreview.schema
+        """A PnP PowerShell script adding every column; DocType and searched fields are indexed."""
+        from xml.sax.saxutils import quoteattr
+
+        from docreview.ecm._render import header, key_lines
+
+        options = options or {}
+        p = options.get("column_prefix") or "DocReview"
+        library = str(options.get("library") or "Documents")
+        searched = set().union(*match_fields.values()) if match_fields else set()
+        lines = [header("SharePoint", "Run it in PnP PowerShell after Connect-PnPOnline to the site.")]
+        columns: dict[str, tuple[str, str, bool]] = {}  # internal name -> (type xml, description, indexed)
+        for ns in schema:
+            label = f"{ns.name}" + (f" of {ns.doc_type}" if ns.doc_type else "")
+            lines.append(f"# {label}: {ns.description}")
+            lines += key_lines(ns)
+            if ns.name == NS_CLASSIFICATION:
+                columns[f"{p}Classification"] = (
+                    _SP_TYPES["json"],
+                    "Classification (JSON; written by the engine).",
+                    False,
+                )
+                lines.append(f"#   doc_type lives in {p}DocType: people correct it there, and find filters on it")
+                columns[f"{p}DocType"] = (_SP_TYPES["string"], ns.keys[0].description, True)
+            elif ns.name == NS_REVIEW:
+                columns[f"{p}Review"] = (_SP_TYPES["json"], "Review result (JSON; written by the engine).", False)
+                requested = next(k for k in ns.keys if k.name == "requested")
+                columns[f"{p}ReviewRequested"] = (_SP_TYPES["boolean"], requested.description, False)
+            else:
+                for k in ns.keys:
+                    col = f"{p}_{k.name}"
+                    if col in columns and columns[col][0] != _SP_TYPES[k.type]:
+                        lines.append(f"# WARNING: {k.name} has different types across document types; one column")
+                    note = " Searched by reference rules (find)." if k.name in searched else ""
+                    columns.setdefault(col, (_SP_TYPES[k.type], k.description + note, k.name in searched))
+        columns[f"{p}Comments"] = (_SP_TYPES["json"], "Comments from the engine, newest first.", False)
+        lines += [f"#   {c}: indexed - find filters on it" for c, (_, _, ix) in columns.items() if ix]
+        lines += ["", f"$list = {_ps(library)}", ""]
+        for col, (kind, description, indexed) in columns.items():
+            attrs = (
+                f'{kind} Name="{col}" StaticName="{col}" DisplayName="{col}" Description={quoteattr(description[:255])}'
+            )
+            xml = f"<Field {attrs}{' Indexed=' + quoteattr('TRUE') if indexed else ''} />"
+            lines.append(f"Add-PnPFieldFromXml -List $list -FieldXml {_ps(xml)}")
+        lines += ["", "# docreview.yaml, under ecm.options:", f"#   library: {library}", f"#   column_prefix: {p}"]
+        return "\n".join(lines)
+
     # --- setup check (called by ``docreview check``) -----------------------------------------------
     def check(self, doc_types: list[str]) -> list[str]:
         """Problems with credentials, the site, the library, the folders and the columns."""
@@ -424,6 +486,11 @@ class SharePointAdapter:
         if not any(c.startswith(f"{self.prefix}_") for c in columns):
             problems.append(f"sharepoint: no field columns ({self.prefix}_<field>) exist yet")
         return problems
+
+
+def _ps(text: str) -> str:
+    """A PowerShell single-quoted string."""
+    return "'" + text.replace("'", "''") + "'"
 
 
 def _same(found: Any, wanted: str) -> bool:

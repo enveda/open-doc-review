@@ -64,6 +64,74 @@ def _same(found: Any, wanted: str) -> bool:
     return str(found if found is not None else "").strip().casefold() == wanted.strip().casefold()
 
 
+_D_TYPES = {"string": "d:text", "number": "d:double", "integer": "d:long", "boolean": "d:boolean", "date": "d:date"}
+
+
+def _comment(text: str) -> str:
+    """An XML comment body: ``--`` is not allowed inside one."""
+    return " " + text.replace("--", "- -").strip() + " "
+
+
+def _content_model(schema, options: Mapping[str, Any], match_fields: Mapping[str, set[str]]) -> str:  # noqa: ANN001
+    from xml.sax.saxutils import escape, quoteattr
+
+    from docreview.ecm._render import header, key_lines
+
+    prefix = str(options.get("prefix") or "dr")
+    aspect = str(options.get("aspect") or f"{prefix}:documentReview")
+    indexed = set().union(*match_fields.values()) if match_fields else set()
+    lines = [f"<!--\n{_comment(header('Alfresco', 'Deploy this content model; see the notes at the end.'))}\n-->"]
+    lines += [
+        f'<model name={quoteattr(prefix + ":docReviewModel")} xmlns="http://www.alfresco.org/model/dictionary/1.0">',
+        "  <description>open-doc-review metadata</description>",
+        "  <version>1.0</version>",
+        '  <imports><import uri="http://www.alfresco.org/model/dictionary/1.0" prefix="d"/></imports>',
+        "  <namespaces>",
+        f'    <namespace uri="http://example.com/model/docreview/1.0" prefix={quoteattr(prefix)}/>',
+        "  </namespaces>",
+        "  <aspects>",
+        f"    <aspect name={quoteattr(aspect)}>",
+        "      <title>Document review</title>",
+        "      <properties>",
+    ]
+
+    def prop(name: str, d_type: str, *, index: bool | None, title: str, keys: Iterable[str] = ()) -> None:
+        lines.append(f"        <property name={quoteattr(prefix + ':' + name)}>")
+        lines.append(f"          <title>{escape(title)}</title>")
+        lines.extend(f"          <!--{_comment(k.lstrip('# '))}-->" for k in keys)
+        lines.append(f"          <type>{d_type}</type>")
+        if name == "reviewRequested":
+            lines.append("          <default>false</default>")
+        if index is not None:
+            tokenised = "<tokenised>both</tokenised>" if index and d_type == "d:text" else ""
+            lines.append(f'          <index enabled="{str(index).lower()}">{tokenised}</index>')
+        lines.append("        </property>")
+
+    by_name = {ns.name: ns for ns in schema if ns.doc_type is None}
+    for ns_name, ns in by_name.items():  # namespaces stored as JSON text; not searched
+        prop(ns_name, "d:text", index=False, title=f"{ns_name} (JSON)", keys=key_lines(ns))
+    prop("docType", "d:text", index=True, title="Document type (a copy of classification.doc_type)")
+    prop("reviewRequested", "d:boolean", index=None, title="Review requested (tick to ask for a re-review)")
+    fields: dict[str, tuple[str, list[str]]] = {}
+    for ns in (n for n in schema if n.doc_type is not None):
+        for k in ns.keys:
+            d_type, seen = fields.get(k.name, (_D_TYPES.get(k.type, "d:text"), []))
+            if d_type != _D_TYPES.get(k.type, "d:text"):
+                d_type = "d:text"  # the same field name with two types: text holds either
+            fields[k.name] = (d_type, [*seen, f"{ns.doc_type}: {k.name} ({k.type}): {k.description}"])
+    for name, (d_type, notes) in sorted(fields.items()):
+        prop(f"f_{name}", d_type, index=True if name in indexed else None, title=name, keys=notes)
+    lines += ["      </properties>", "    </aspect>", "  </aspects>", "</model>"]
+    notes = [
+        f"Deploy: save as alfresco/extension/{prefix}DocReviewModel.xml with a bootstrap context, or upload it",
+        "to Repository > Data Dictionary > Models and set it active. Do not apply the aspect by hand; the",
+        "adapter adds it on its first write. Indexed properties are the ones reference rules search on;",
+        "re-index after changing them. Then run `docreview check`.",
+    ]
+    lines.append("<!--\n" + "\n".join(_comment(n) for n in notes) + "\n-->")
+    return "\n".join(lines)
+
+
 class AlfrescoAdapter:
     """One folder tree of an Alfresco repository. Metadata lives in one aspect (``P`` = ``prefix``):
 
@@ -72,6 +140,11 @@ class AlfrescoAdapter:
     """
 
     name = "alfresco"
+
+    @classmethod
+    def render_schema(cls, schema, options, match_fields) -> str:  # noqa: ANN001 - see docreview.schema
+        """The content model XML for the aspect, generated from the config's document types and fields."""
+        return _content_model(schema, options or {}, match_fields or {})
 
     def __init__(
         self,

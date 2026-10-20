@@ -39,6 +39,17 @@ RECORD_FIELDS = {
     "fields__c": "long text",
     "comments__c": "long text",
 }
+_FIELD_SPEC = {  # record field -> (Vault field type, purpose) for ``docreview templates``
+    "document_id__c": ("Text (20)", "The document id."),
+    "document_version__c": ("Text (40)", "The version this record is for: {id}_{major}_{minor}."),
+    "doc_type__c": ("Text (100)", "Document type id. A person corrects the type here; it wins over the JSON."),
+    "processed_version__c": ("Text (40)", "Copy of classification.processed_version, for the poll query."),
+    "review_requested__c": ("Yes/No", "A person sets it to ask for a re-review; the engine clears it."),
+    "classification__c": ("Long Text (32000)", "Classification, as JSON."),
+    "review__c": ("Long Text (32000)", "Review result, as JSON."),
+    "fields__c": ("Long Text (32000)", "Extracted fields, as JSON."),
+    "comments__c": ("Long Text (32000)", "Comments from the engine, newest first."),
+}
 _JSON = {NS_CLASSIFICATION: "classification__c", NS_REVIEW: "review__c", NS_FIELDS: "fields__c"}
 
 
@@ -319,6 +330,35 @@ class VeevaVaultAdapter:
     def _comment_entries(self, ref: DocumentRef) -> list[str]:
         _, values = self._pick(self._records([ref.id]).get(ref.id, []), ref.version)
         return [e for e in str(values.get("comments__c") or "").split(_SEPARATOR) if e.strip()]
+
+    # --- setup generator (called by ``docreview templates``; no instance, no network) -------------
+    @classmethod
+    def render_schema(cls, schema, options, match_fields) -> str:  # noqa: ANN001 - see docreview.schema
+        """The custom object's field table (create it in Admin > Configuration > Objects), plus the
+        ``match_fields`` option. Searched fields get their own text field, which VQL filters on."""
+        from docreview.ecm._render import header, key_lines
+
+        options = options or {}
+        obj = options.get("result_object") or "docreview_result__c"
+        given = dict(options.get("match_fields") or {})
+        searched = sorted(set().union(*match_fields.values())) if match_fields else []
+        mapping = {f: given.get(f) or f"{f.lower()}__c" for f in searched}
+        how = f"Create custom object {obj} with these fields (Admin > Configuration > Objects), then validate it."
+        lines = [header("Veeva Vault", how), f"# Object: {obj}  (name__v: Text, editable; set to the version id)", "#"]
+        lines.append(f"# {'Field':<28} {'Type':<18} Purpose")
+        rows = [(name, *_FIELD_SPEC[name]) for name in RECORD_FIELDS]
+        rows += [
+            (col, "Text (255)", f"Folded copy of {f}. Searched by reference rules (find).")
+            for f, col in mapping.items()
+        ]
+        lines += [f"# {name:<28} {kind:<18} {purpose}" for name, kind, purpose in rows]
+        for ns in schema:
+            where = {NS_CLASSIFICATION: "classification__c", NS_REVIEW: "review__c"}.get(ns.name, "fields__c")
+            label = f" (doc type {ns.doc_type})" if ns.doc_type else ""
+            lines += ["#", f"# JSON keys in {where}{label}: {ns.description}", *key_lines(ns)]
+        lines += ["#", "# docreview.yaml, under ecm.options:", f"#   result_object: {obj}", "#   match_fields:"]
+        lines += [f"#     {f}: {col}" for f, col in mapping.items()] or ["#     {}"]
+        return "\n".join(lines)
 
     # --- setup check (called by ``docreview check``) -----------------------------------------------
     def check(self, doc_types: list[str]) -> list[str]:

@@ -33,21 +33,21 @@ doc_types:
   purchase_order:
     description: A buyer's order to a supplier listing items, quantities, agreed unit prices and terms.
     fields:
-      po_number: {description: The purchase order number as printed.}
-      supplier: {description: Supplier company name.}
-      order_date: {type: date}
-      total: {type: number, description: Order total, before tax.}
-      currency: {description: ISO currency code, e.g. USD.}
+      po_number: {description: "The purchase order number as printed."}
+      supplier: {description: "Supplier company name."}
+      order_date: {type: date, description: "The order date."}
+      total: {type: number, description: "Order total, before tax."}
+      currency: {description: "ISO currency code, e.g. USD."}
 
   invoice:
     description: A supplier's request for payment for goods or services delivered.
     fields:
-      invoice_number: {description: The invoice number as printed.}
-      po_number: {description: The purchase order number the invoice cites, exactly as printed.}
-      supplier: {description: Supplier company name.}
-      invoice_date: {type: date}
-      total: {type: number, description: Invoice total, before tax.}
-      currency: {description: ISO currency code, e.g. USD.}
+      invoice_number: {description: "The invoice number as printed."}
+      po_number: {description: "The purchase order number the invoice cites, exactly as printed."}
+      supplier: {description: "Supplier company name."}
+      invoice_date: {type: date, description: "The invoice date."}
+      total: {type: number, description: "Invoice total, before tax."}
+      currency: {description: "ISO currency code, e.g. USD."}
     review:
       enabled: true
       prompt: review/invoice        # prompts/review/invoice.md
@@ -62,20 +62,20 @@ doc_types:
       A master batch record (MBR): the approved manufacturing instructions for a product, with steps,
       quantities and limits, but no recorded results for a specific batch.
     fields:
-      mbr_number: {description: The master batch record number as printed.}
-      mbr_version: {description: The version of the master batch record as printed.}
-      product: {description: Product name and strength.}
+      mbr_number: {description: "The master batch record number as printed."}
+      mbr_version: {description: "The version of the master batch record as printed."}
+      product: {description: "Product name and strength."}
 
   executed_batch_record:
     description: >-
       An executed batch record (EBR): the completed record of one batch, with the values actually recorded
       at each step, and who recorded and verified them.
     fields:
-      batch_number: {description: The batch number as printed.}
-      mbr_number: {description: The master batch record number the batch was made to.}
-      mbr_version: {description: The master batch record version the batch was made to.}
-      product: {description: Product name and strength.}
-      manufacture_date: {type: date}
+      batch_number: {description: "The batch number as printed."}
+      mbr_number: {description: "The master batch record number the batch was made to."}
+      mbr_version: {description: "The master batch record version the batch was made to."}
+      product: {description: "Product name and strength."}
+      manufacture_date: {type: date, description: "The date the batch was manufactured."}
     review:
       enabled: true
       references:

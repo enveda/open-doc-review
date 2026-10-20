@@ -427,3 +427,30 @@ def test_no_destructive_calls_exist():
     source = inspect.getsource(box)
     for call in ("delete_", "update_file_by_id", "uploads.", "copy_file", "create_folder"):
         assert call not in source
+
+
+def _example_schema():
+    from pathlib import Path
+
+    from docreview.config import load_config
+    from docreview.schema import build_schema, match_fields
+
+    cfg = load_config(Path(__file__).resolve().parents[1] / "examples" / "generic" / "docreview.yaml")
+    return build_schema(cfg), match_fields(cfg)
+
+
+def test_templates_render_a_runnable_script_from_the_example_config():
+    schema, searched = _example_schema()
+    out = BoxAdapter.render_schema(schema, {}, searched)
+    compile(out, "box_templates.py", "exec")  # the output is a ready-to-run Python script
+    for ns in schema:
+        for key in ns.keys:
+            assert f'"key": "{key.name}"' in out
+    for doc_type in searched:
+        title = "".join(p.title() for p in doc_type.split("_"))
+        assert f'"key": "docFields{title}"' in out and f"{doc_type}: docFields{title}" in out
+    for field in set().union(*searched.values()):
+        assert f"#   {field}: searched by reference rules (find)" in out
+    custom = BoxAdapter.render_schema(schema, {"templates": {"classification": "myClass"}}, searched)
+    assert '"key": "myClass"' in custom and "classification: myClass" in custom
+    assert '"options": [\n                    "true",\n                    "false"' in out  # requested is a dropdown

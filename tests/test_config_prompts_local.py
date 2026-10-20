@@ -143,3 +143,36 @@ def test_every_builtin_adapter_imports_and_has_every_port_method():
         cls = getattr(importlib.import_module(module), attr)
         assert port <= set(dir(cls)), f"{name} lacks {port - set(dir(cls))}"
         assert not {"delete", "move", "rename", "upload"} & set(dir(cls)), name
+
+
+def test_templates_command_prints_local_and_json(workspace, capsys):
+    from docreview.cli import main
+
+    assert main(["-c", str(workspace / "docreview.yaml"), "templates"]) == 0
+    assert "docreview.json sidecars" in capsys.readouterr().out
+    assert main(["-c", str(workspace / "docreview.yaml"), "templates", "--format", "json"]) == 0
+    import json
+
+    data = json.loads(capsys.readouterr().out)
+    assert [ns["name"] for ns in data][:2] == ["classification", "review"]
+    assert {ns["doc_type"] for ns in data[2:]} == {
+        "invoice",
+        "purchase_order",
+        "executed_batch_record",
+        "master_batch_record",
+    }
+
+
+def test_unquoted_comma_in_description_is_caught(workspace):
+    path = workspace / "docreview.yaml"
+    text = path.read_text().replace(
+        'description: "Order total, before tax."}', "description: Order total, before tax.}"
+    )
+    path.write_text(text)
+    with pytest.raises(ConfigError, match="quote the description"):
+        load_config(path)
+
+
+def test_example_descriptions_are_complete(workspace):
+    cfg = load_config(workspace / "docreview.yaml")
+    assert cfg.doc_type("purchase_order").fields[3].description == "Order total, before tax."

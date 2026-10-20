@@ -28,6 +28,14 @@ PROP_CLASS = 100  # built-in "Class"
 PROP_COMMENT = 33  # built-in "Comment": each value set becomes a version comment
 TEXT, INTEGER, FLOAT, DATE, BOOLEAN, MULTILINE = 1, 2, 3, 5, 8, 13  # MFDataType values used here
 _CHECKED_OUT_TO_ME, _CHECKED_IN = 2, 0  # MFCheckOutStatus
+_MF_TYPES = {  # M-Files Admin data type per schema type
+    "string": "Text",
+    "number": "Real number (floating point)",
+    "integer": "Number (integer)",
+    "date": "Date",
+    "boolean": "Boolean (yes/no)",
+    "json": "Text (multi-line)",
+}
 _VERIFY_CAP = 50  # search hits re-read to confirm a match
 
 
@@ -312,6 +320,38 @@ class MFilesAdapter:
             if tv.get("Value"):
                 texts.append(str(tv["Value"]))
         return texts
+
+    # --- setup generator (called by ``docreview templates``; no instance, no network) -------------
+    @classmethod
+    def render_schema(cls, schema, options, match_fields) -> str:  # noqa: ANN001 - see docreview.schema
+        """The property definitions to create, and the ``properties`` option with id placeholders."""
+        from docreview.ecm._render import header, key_lines
+
+        searched = set().union(*match_fields.values()) if match_fields else set()
+        how = (
+            "Create these property definitions in M-Files Admin, add them to the classes in scope, then paste the ids."
+        )
+        lines = [header("M-Files", how)]
+        props = {  # option key -> (property name, data type, purpose)
+            "classification": ("DocReview Classification", _MF_TYPES["json"], "Classification, as JSON."),
+            "review": ("DocReview Review", _MF_TYPES["json"], "Review result, as JSON."),
+            "doc_type": ("DocReview Doc Type", _MF_TYPES["string"], "Document type id; a person corrects it here."),
+            "requested": ("DocReview Review Requested", _MF_TYPES["boolean"], "Set to ask for a re-review."),
+        }
+        fields: dict[str, tuple[str, str, str]] = {}
+        for ns in schema:
+            label = f" (doc type {ns.doc_type})" if ns.doc_type else ""
+            lines += [f"# {ns.name}{label}: {ns.description}", *key_lines(ns)]
+            for k in ns.keys if ns.doc_type else ():
+                note = " Searched by reference rules (find)." if k.name in searched else ""
+                fields.setdefault(k.name, (f"DocReview {k.name}", _MF_TYPES[k.type], k.description + note))
+        lines += ["#", f"# {'Property definition':<34} {'Data type':<30} Purpose"]
+        lines += [f"# {n:<34} {t:<30} {why}" for n, t, why in [*props.values(), *fields.values()]]
+        lines.append("# Comments use the built-in Comment property (id 33): nothing to create.")
+        lines += ["#", "# docreview.yaml, under ecm.options:", "#   properties:"]
+        lines += [f"#     {key}: <id of '{name}'>" for key, (name, _, _) in props.items()] + ["#     fields:"]
+        lines += [f"#       {key}: <id of '{name}'>" for key, (name, _, _) in fields.items()]
+        return "\n".join(lines)
 
     # --- setup check (called by ``docreview check``) -----------------------------------------------
     def check(self, doc_types: list[str]) -> list[str]:

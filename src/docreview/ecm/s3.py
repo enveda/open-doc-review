@@ -57,6 +57,43 @@ class S3Adapter:
 
     name = "s3"
 
+    @classmethod
+    def render_schema(cls, schema, options, match_fields) -> str:  # noqa: ANN001 - see docreview.schema
+        """Nothing to create in S3: the sidecar shape, and an IAM policy that allows only sidecar writes."""
+        from docreview.ecm._render import header, key_lines
+
+        o = options or {}
+        bucket, prefix = o.get("bucket") or "<bucket>", o.get("prefix") or ""
+        sidecars = prefix if o.get("sidecar_prefix") is None else o["sidecar_prefix"]
+        lines = [header("Amazon S3", f"Nothing to create in S3: results go in <key>{SUFFIX} sidecar objects.")]
+        for ns in schema:
+            label = f'"{ns.name}"' + (f" (when doc_type is {ns.doc_type!r})" if ns.doc_type else "")
+            lines.append(f"# {label}: {ns.description}")
+            lines += key_lines(ns)
+        lines.append('# "comments": a list of {"at": ..., "text": ...} entries.')
+        lines.append("#\n# IAM policy for the adapter's role (reads under prefix; writes only sidecars):")
+        listed = sorted({f"{p}*" for p in (prefix, sidecars)})
+        policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": ["s3:ListBucket", "s3:ListBucketVersions"],
+                    "Resource": f"arn:aws:s3:::{bucket}",
+                    "Condition": {"StringLike": {"s3:prefix": listed}},
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+                    "Resource": sorted({f"arn:aws:s3:::{bucket}/{p}*" for p in (prefix, sidecars)}),
+                },
+                {"Effect": "Allow", "Action": "s3:PutObject", "Resource": f"arn:aws:s3:::{bucket}/{sidecars}*{SUFFIX}"},
+            ],
+        }
+        lines.append(json.dumps(policy, indent=2))
+        lines.append("# Add kms:Decrypt and kms:GenerateDataKey when the bucket uses SSE-KMS.")
+        return "\n".join(lines)
+
     def __init__(
         self,
         *,

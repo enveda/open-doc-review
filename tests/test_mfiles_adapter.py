@@ -308,3 +308,28 @@ def test_no_destructive_calls_exist():
     assert all("/files/" not in p or p.endswith("/content") for m, p in calls if m == "GET")
     for word in ("DELETE", ".delete(", '/files"', "undocheckout", "destroy", "/deleted"):
         assert word not in source
+
+
+def _example_schema():
+    from pathlib import Path
+
+    from docreview.config import load_config
+    from docreview.schema import build_schema, match_fields
+
+    cfg = load_config(Path(__file__).resolve().parents[1] / "examples" / "generic" / "docreview.yaml")
+    return build_schema(cfg), match_fields(cfg)
+
+
+def test_templates_render_property_definitions_from_the_example_config():
+    schema, searched = _example_schema()
+    out = MFilesAdapter.render_schema(schema, {}, searched)
+    for ns in schema:
+        for key in ns.keys:
+            assert f"#   {key.name} (" in out
+            if ns.doc_type:
+                assert f"#       {key.name}: <id of 'DocReview {key.name}'>" in out
+    for field in set().union(*searched.values()):
+        row = next(line for line in out.splitlines() if line.startswith(f"# DocReview {field} "))
+        assert "Searched by reference rules" in row
+    for option in ("classification", "review", "doc_type", "requested"):
+        assert f"#     {option}: <id of" in out

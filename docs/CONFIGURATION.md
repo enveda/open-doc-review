@@ -40,7 +40,7 @@ doc_types:
   <id>:                          # letters, digits, _ ; used in prompt names and metadata; 'unknown' is reserved
     description: ...             # required; the classifier reads it
     fields:
-      <field>: {type: string|number|integer|boolean|date, description: ...}
+      <field>: {type: string|number|integer|boolean|date, description: "..."}   # quote descriptions
     review:
       enabled: true
       prompt: review/<id>        # optional; this is the default

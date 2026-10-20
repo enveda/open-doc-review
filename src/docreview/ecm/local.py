@@ -43,6 +43,19 @@ class LocalFolderAdapter:
         if not self.root.is_dir():
             raise FileNotFoundError(f"local adapter root {self.root} does not exist")
 
+    @classmethod
+    def render_schema(cls, schema, options, match_fields) -> str:  # noqa: ANN001 - see docreview.schema
+        """Nothing to create: every namespace is a key of the sidecar JSON file."""
+        from docreview.ecm._render import header, key_lines
+
+        lines = [header("local folder", "Nothing to create: results go in <document>.docreview.json sidecars.")]
+        for ns in schema:
+            label = f'"{ns.name}"' + (f" (when doc_type is {ns.doc_type!r})" if ns.doc_type else "")
+            lines.append(f"# {label}: {ns.description}")
+            lines += key_lines(ns)
+        lines.append('# "comments": a list of {"at": ..., "text": ...} entries.')
+        return "\n".join(lines)
+
     # --- helpers --------------------------------------------------------------------------------
     def _path(self, document_id: str) -> Path:
         p = (self.root / document_id).resolve()

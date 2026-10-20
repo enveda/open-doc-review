@@ -12,51 +12,35 @@ document's content or location.
 pip install 'open-doc-review[alfresco]'   # adds httpx
 ```
 
-## 1. Deploy the content model
+## 1. Generate and deploy the content model
 
-The metadata lives in one custom aspect, `dr:documentReview` (prefix `dr`). Each entry in your
-`doc_types.*.fields` config needs a property `dr:f_<field>` in it.
+The metadata lives in one custom aspect, `dr:documentReview` (prefix `dr`). Don't write its content
+model by hand. Generate it from your config:
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<model name="dr:docReviewModel" xmlns="http://www.alfresco.org/model/dictionary/1.0">
-  <description>open-doc-review metadata</description>
-  <version>1.0</version>
-  <imports>
-    <import uri="http://www.alfresco.org/model/dictionary/1.0" prefix="d"/>
-  </imports>
-  <namespaces>
-    <namespace uri="http://example.com/model/docreview/1.0" prefix="dr"/>
-  </namespaces>
-  <aspects>
-    <aspect name="dr:documentReview">
-      <title>Document review</title>
-      <properties>
-        <!-- namespaces stored as JSON; not searched -->
-        <property name="dr:classification"><type>d:text</type><index enabled="false"/></property>
-        <property name="dr:review"><type>d:text</type><index enabled="false"/></property>
-        <!-- find filters on these -->
-        <property name="dr:docType"><type>d:text</type>
-          <index enabled="true"><tokenised>both</tokenised></index></property>
-        <property name="dr:reviewRequested"><type>d:boolean</type><default>false</default></property>
-        <!-- one per extracted field: string → d:text, number → d:double, integer → d:long,
-             date → d:date, boolean → d:boolean -->
-        <property name="dr:f_po_number"><type>d:text</type>
-          <index enabled="true"><tokenised>both</tokenised></index></property>
-        <property name="dr:f_total"><type>d:double</type></property>
-        <property name="dr:f_invoice_date"><type>d:date</type></property>
-      </properties>
-    </aspect>
-  </aspects>
-</model>
+```bash
+docreview -c docreview.yaml templates > docReviewModel.xml   # with ecm.adapter: alfresco
+docreview -c docreview.yaml templates --adapter alfresco     # from any config, with the default prefix
 ```
+
+The output is one XML document, comments included, and it is ready to deploy. It holds:
+- `dr:classification` and `dr:review`: `d:text` holding JSON, not indexed. Their keys are listed in
+  comments.
+- `dr:docType` (`d:text`, indexed) and `dr:reviewRequested` (`d:boolean`, default `false`).
+- One `dr:f_<field>` per field across all your document types, typed from the config:
+  `string` → `d:text`, `number` → `d:double`, `integer` → `d:long`, `boolean` → `d:boolean`,
+  `date` → `d:date`. A field name used with two different types becomes `d:text`.
+- **Indexing:** the fields that reference rules search on are indexed (`d:text` tokenised `both`),
+  and so is `dr:docType`.
+
+The `prefix` and `aspect` adapter options are honoured. Re-generate the model whenever you change
+document types or fields.
 
 To deploy it, do one of the following:
 - save it as `alfresco/extension/docReviewModel.xml`, with a bootstrap context;
-- upload it to *Repository → Data Dictionary → Models* and activate it there;
-- recreate it in Share's *Model Manager*.
+- upload it to *Repository → Data Dictionary → Models* and activate it there.
 
-Do not apply the aspect yourself. The adapter adds it on its first write.
+Do not apply the aspect yourself. The adapter adds it on its first write. Run `docreview check`
+afterwards: it confirms the aspect and its four namespace properties.
 
 ## 2. Service user and versioning
 

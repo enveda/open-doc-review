@@ -322,3 +322,33 @@ def test_no_destructive_calls_exist():
     for word in ("DELETE", "/copy", "/move", "/lock", "/revert", '/children", json', '/content", json'):
         assert word not in source
     assert source.count('"PUT"') == 1 and "self._http.request(" in source
+
+
+def test_templates_render_a_content_model_that_parses_and_indexes_the_match_fields():
+    import xml.etree.ElementTree as ET
+    from pathlib import Path
+
+    from docreview.config import load_config
+    from docreview.ecm._render import header
+    from docreview.schema import build_schema, match_fields
+
+    cfg = load_config(Path(__file__).parents[1] / "examples" / "generic" / "docreview.yaml")
+    schema, matches = build_schema(cfg), match_fields(cfg)
+    out = AlfrescoAdapter.render_schema(schema, {}, matches)
+    assert out.startswith("<!--") and header("Alfresco", "x").splitlines()[0].lstrip("# ") in out
+    for ns in schema:
+        for key in ns.keys:
+            assert key.name in out, key.name
+    root = ET.fromstring(out)  # the whole output is one XML document, comments included
+    d = "{http://www.alfresco.org/model/dictionary/1.0}"
+    props = {p.get("name"): p for p in root.iter(f"{d}property")}
+    assert props["dr:docType"].find(f"{d}index").get("enabled") == "true"
+    for field in set().union(*matches.values()):
+        assert props[f"dr:f_{field}"].find(f"{d}index").get("enabled") == "true", field
+    assert props["dr:classification"].find(f"{d}index").get("enabled") == "false"
+    types = {"string": "d:text", "number": "d:double", "integer": "d:long", "boolean": "d:boolean", "date": "d:date"}
+    for ns in (n for n in schema if n.doc_type):
+        for key in ns.keys:
+            assert props[f"dr:f_{key.name}"].find(f"{d}type").text == types[key.type]
+    renamed = AlfrescoAdapter.render_schema(schema, {"prefix": "acme"}, matches)
+    assert 'name="acme:documentReview"' in renamed and "dr:" not in renamed

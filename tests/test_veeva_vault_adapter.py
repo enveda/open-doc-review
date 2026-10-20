@@ -279,3 +279,26 @@ def test_no_destructive_calls_exist():
     assert 'f"/vobjects/{self.object}"' in save
     for word in ("DELETE", ".delete(", "/actions", "lifecycle_actions", '/objects/documents/{doc_id}"', "PATCH"):
         assert word not in source
+
+
+def _example_schema():
+    from pathlib import Path
+
+    from docreview.config import load_config
+    from docreview.schema import build_schema, match_fields
+
+    cfg = load_config(Path(__file__).resolve().parents[1] / "examples" / "generic" / "docreview.yaml")
+    return build_schema(cfg), match_fields(cfg)
+
+
+def test_templates_render_the_object_fields_from_the_example_config():
+    schema, searched = _example_schema()
+    out = VeevaVaultAdapter.render_schema(schema, {}, searched)
+    for name in RECORD_FIELDS:
+        assert f"# {name} " in out
+    for ns in schema:
+        for key in ns.keys:
+            assert f"#   {key.name} (" in out
+    for field in set().union(*searched.values()):
+        row = next(line for line in out.splitlines() if line.startswith(f"# {field}__c "))
+        assert "Searched by reference rules" in row and f"#     {field}: {field}__c" in out
