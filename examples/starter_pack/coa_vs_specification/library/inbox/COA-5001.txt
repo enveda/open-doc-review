@@ -1,0 +1,13 @@
+CERTIFICATE OF ANALYSIS                         Certificate No: COA-5001
+Producer: Sample Materials Co., 2 Example Road, Exampletown
+Material: Examplite powder              Lot: LOT-A17
+Tested against: SPEC-100, version 3    Testing completed: 2026-09-14
+
+Test                     Method        Result
+Appearance               Visual        White powder
+Assay                    TM-01         97.6 %
+Loss on drying           TM-02         4 mg/g
+Residue on ignition      TM-03         0.05 %
+
+Conclusion: The lot LOT-A71 meets the specification.
+Released by: C. Analyst, Quality Control

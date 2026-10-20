@@ -10,7 +10,7 @@ from docreview.cli import build
 from docreview.config import load_config
 from docreview.llm import ModelRequest, ModelResponse
 
-EXAMPLE = Path(__file__).resolve().parents[1] / "examples" / "generic"
+EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 
 
 class FakeModel:
@@ -97,9 +97,8 @@ BATCH_FILES = ("inbox/EBR-B24-0117.txt", "master_batch_records/MBR-0042.txt")
 
 @pytest.fixture
 def full_workspace(tmp_path: Path) -> Path:
-    dest = tmp_path / "example"
-    shutil.copytree(EXAMPLE, dest)
-    return dest
+    shutil.copytree(EXAMPLES, tmp_path / "examples")
+    return tmp_path / "examples" / "generic"
 
 
 @pytest.fixture

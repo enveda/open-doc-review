@@ -52,6 +52,27 @@ def cmd_check(cfg: Config) -> int:
     return 0
 
 
+def cmd_eval(cfg: Config, args: argparse.Namespace, model_client: ModelClient | None = None) -> int:
+    """Real model calls on a temporary copy of the test library; the configured ECM is never touched."""
+    from docreview.evaluate import run_eval
+
+    library = Path(args.library) if args.library else None
+    if library is None:
+        if cfg.adapter != "local":
+            print("eval needs --library: a local folder of test documents", file=sys.stderr)
+            return 2
+        library = Path(cfg.adapter_options["_base_dir"]) / cfg.adapter_options.get("root", "library")
+    library = library if library.is_absolute() else (cfg.base_dir / library)
+    expected = Path(args.expected)
+    expected = expected if expected.is_absolute() else cfg.base_dir / expected
+    print(f"Reviewing {library} {args.runs} time(s) with real model calls; nothing is written to your ECM.")
+    report = run_eval(cfg, expected, library.resolve(), runs=args.runs, model_client=model_client)
+    print(report.format())
+    if args.out:
+        Path(args.out).write_text(report.to_json(), encoding="utf-8")
+    return 0 if report.passed else 1
+
+
 def cmd_templates(cfg: Config, fmt: str, adapter_name: str | None) -> int:
     """Print the metadata setup an ECM needs for this config. No connection is made."""
     from docreview.schema import build_schema, match_fields, render_json
@@ -120,6 +141,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-v", "--verbose", action="store_true")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check", help="validate config, prompts and adapter connection")
+    ev = sub.add_parser("eval", help="review documents with known problems and score what was caught")
+    ev.add_argument("--expected", default="expected.yaml", help="expected findings (relative to the config)")
+    ev.add_argument("--library", help="folder of test documents (default: the local adapter's root)")
+    ev.add_argument("--runs", type=int, default=3, help="repeat runs, to measure consistency")
+    ev.add_argument("--out", help="also write the report as JSON to this file")
+    est = sub.add_parser("estimate", help="estimate tokens and cost for the pending documents (no model calls)")
+    est.add_argument("--folder", help="estimate a local folder instead of what the adapter would process")
     tpl = sub.add_parser("templates", help="print the metadata templates / columns / fields your ECM needs")
     tpl.add_argument("--format", choices=["native", "json"], default="native")
     tpl.add_argument("--adapter", help="render for another adapter than the one in the config")
@@ -144,6 +172,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "check":
         return cmd_check(cfg)
+    if args.cmd == "eval":
+        return cmd_eval(cfg, args)
+    if args.cmd == "estimate":
+        from docreview.ecm.local import LocalFolderAdapter
+        from docreview.estimate import estimate
+
+        source = (
+            LocalFolderAdapter(root=str(Path(args.folder).resolve()))
+            if args.folder
+            else load_adapter(cfg.adapter, cfg.adapter_options)
+        )
+        print(estimate(cfg, source).format())
+        return 0
     if args.cmd == "templates":
         return cmd_templates(cfg, args.format, args.adapter)
     pipeline = build(cfg)

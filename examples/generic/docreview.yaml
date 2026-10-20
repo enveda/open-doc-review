@@ -1,3 +1,6 @@
+# STARTER EXAMPLE. Document types, fields and prompts here are illustrative: align them with your
+# organization's own policies and procedures before relying on any result.
+#
 # Example: check supplier invoices against their purchase orders, and executed batch records against
 # their master batch records.
 # Run from this folder:  docreview -c docreview.yaml check   then   docreview -c docreview.yaml run --once
@@ -17,7 +20,8 @@ llm:
   fallbacks: default        # server-side refusal fallback (Claude API only); "off" elsewhere
 
 prompts:
-  dirs: [prompts]           # first folder wins; list your team's folder first to override
+  dirs: [prompts, ../shared_prompts]   # first folder wins: this example's review prompts, then the shared
+                                      # starter system/classify/extract prompts
 
 review:
   post_comments: true

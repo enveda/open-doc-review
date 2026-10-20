@@ -1,0 +1,15 @@
+MASTER SERVICES AGREEMENT                        Agreement No: MSA-0417
+Between: Example Buyer Ltd ("Customer") and Sample Services Ltd ("Supplier")
+Based on: Standard supplier terms version ST-2026.1
+Effective date: 2026-10-01
+
+1. Services. The Supplier provides the services described in each statement of work.
+2. Fees. Fees are set out in each statement of work.
+3. Term. This agreement starts on the effective date and continues for sixty (60) months.
+4. Limitation of liability. Each party's total liability is capped at the fees paid or payable in the
+   24 months before the claim.
+5. Confidentiality. Each party keeps the other's confidential information confidential during the
+   agreement and for 18 months after it ends.
+6. Governing law. This agreement is governed by the laws of Otherland.
+
+Signed for the Customer: ____________        Signed for the Supplier: ____________

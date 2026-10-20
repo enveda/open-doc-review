@@ -1,5 +1,10 @@
 # Writing your prompts
 
+> Prompts encode your review policy. Align every prompt with your organization's own policies, procedures
+> and regulatory obligations, and change it under your normal change control. The starter prompts in
+> `examples/` say so in their headers. See [WRITING_REVIEW_PROMPTS.md](WRITING_REVIEW_PROMPTS.md) for
+> how to write checks and severities.
+
 The engine ships no prompt wording. You write the prompts, in your words and your house style.
 The engine controls the **answer format**: every call uses a JSON schema that the Claude API
 enforces. So your prompts say *what to look for and how to judge it*, never how to format the
@@ -19,6 +24,10 @@ holding `<name>.md` wins, so a team can override a shared set file by file.
 | `review/<doc_type>.md` | The review itself (or the file named in `doc_types.<type>.review.prompt`) | for each type with review enabled |
 
 `docreview check` lists any prompt that is missing.
+
+Starting points: `examples/shared_prompts/` holds generic `system.md`, `classify.md` and `extract.md`. List
+that folder last in `prompts.dirs` so your own copies take priority. `examples/prompt_templates/review_template.md`
+is the skeleton for a review prompt. Text inside `<!-- ... -->` is an author's note and is not sent to the model.
 
 ## Variables
 

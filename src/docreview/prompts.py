@@ -9,6 +9,7 @@ model silently. Available variables are listed in docs/PROMPTS.md.
 
 The engine, not the prompt, defines the response format: every call uses a JSON schema that
 the API enforces, so prompts describe *what to look for*, never how to format the answer.
+HTML comments (``<!-- ... -->``) are authors' notes and are removed before sending.
 Optional YAML front matter (between ``---`` lines) is stripped and kept as ``meta`` — use it
 for owner, version, change notes; it is written to the audit log with every call.
 """
@@ -24,6 +25,7 @@ from typing import Any
 import yaml
 
 _VAR = re.compile(r"\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}")
+_COMMENT = re.compile(r"<!--.*?-->\n?", re.S)  # authors' notes: never sent to the model
 
 
 class PromptError(LookupError):
@@ -82,4 +84,4 @@ class PromptLibrary:
             if sep:
                 meta = yaml.safe_load(head) or {}
                 text = body
-        return Prompt(name=name, path=path, template=text, meta=meta)
+        return Prompt(name=name, path=path, template=_COMMENT.sub("", text), meta=meta)

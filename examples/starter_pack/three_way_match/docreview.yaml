@@ -1,0 +1,82 @@
+# STARTER EXAMPLE. Document types, fields and prompts here are illustrative: align them with your
+# organization's own policies and procedures before relying on any result.
+#
+# Three-way match: an invoice is checked against BOTH its purchase order and the goods receipt for
+# that order. A goods receipt is itself checked against its purchase order.
+# Run from this folder:  docreview check   then   docreview run --once
+
+ecm:
+  adapter: local
+  options:
+    root: library           # every document lives under here; results go in *.docreview.json sidecars
+
+llm:
+  models:
+    default: claude-opus-5-5
+  effort:
+    classify: low
+    extract: low
+    review: high
+
+prompts:
+  dirs: [prompts, ../../shared_prompts]   # this pack's review prompts, then the shared starter prompts
+
+review:
+  post_comments: true
+  comment_min_severity: minor
+  dry_run: false
+
+audit:
+  path: logs/ai_calls.jsonl
+
+max_attempts: 3
+
+doc_types:
+  purchase_order:
+    description: A buyer's order to a supplier listing items, quantities, agreed unit prices and terms.
+    fields:
+      po_number: {description: "The purchase order number as printed."}
+      supplier: {description: "Supplier company name."}
+      order_date: {type: date, description: "The order date."}
+      total: {type: number, description: "Order total, before tax."}
+      currency: {description: "ISO currency code, for example EUR."}
+
+  goods_receipt:
+    description: >-
+      A goods receipt note: the buyer's record of what was physically received against a purchase
+      order, with quantities received, accepted and rejected.
+    fields:
+      receipt_number: {description: "The goods receipt number as printed."}
+      po_number: {description: "The purchase order number the receipt is booked against, exactly as printed."}
+      supplier: {description: "Supplier company name."}
+      receipt_date: {type: date, description: "The date the goods were received."}
+    review:
+      enabled: true
+      prompt: review/goods_receipt
+      references:
+        - name: Purchase order
+          doc_type: purchase_order
+          required: true
+          match: {po_number: "{po_number}"}
+
+  invoice:
+    description: A supplier's request for payment for goods or services delivered.
+    fields:
+      invoice_number: {description: "The invoice number as printed."}
+      po_number: {description: "The purchase order number the invoice cites, exactly as printed."}
+      supplier: {description: "Supplier company name."}
+      invoice_date: {type: date, description: "The invoice date."}
+      total: {type: number, description: "Invoice total, before tax, as printed."}
+      currency: {description: "ISO currency code, for example EUR."}
+    review:
+      enabled: true
+      prompt: review/invoice
+      references:                     # both are required: no payment without order AND receipt
+        - name: Purchase order
+          doc_type: purchase_order
+          required: true
+          match: {po_number: "{po_number}"}
+        - name: Goods receipt
+          doc_type: goods_receipt
+          required: true
+          match: {po_number: "{po_number}"}

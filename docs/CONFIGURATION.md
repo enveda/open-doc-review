@@ -20,6 +20,8 @@ llm:
   fallbacks: default             # "default" = server-side refusal fallback (Claude API only); "off" for other providers
   max_tokens: 16000              # per response, including the model's thinking
   max_document_mb: 30            # larger documents are rejected before sending
+  prices:                        # optional, for `docreview estimate`: US$ per million tokens
+    my-model-id: {input: 4.0, output: 20.0}
 
 prompts:
   dirs: [prompts]                # searched in order; first match wins

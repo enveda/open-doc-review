@@ -76,6 +76,7 @@ class LLMConfig:
     fallbacks: str = "default"  # "default" = server-side refusal fallback; "off" to disable
     provider: str = "anthropic"  # anthropic | bedrock | vertex | foundry
     provider_options: dict[str, Any] = field(default_factory=dict)  # passed to the provider's client
+    prices: dict[str, dict[str, float]] = field(default_factory=dict)  # US$ per million tokens, for `estimate`
     max_tokens: int = 16000
     max_document_mb: float = 30.0
 
@@ -247,6 +248,7 @@ def _build(raw, base, ecm, llm, review, min_sev, fallbacks, provider) -> Config:
             fallbacks=fallbacks,
             provider=provider,
             provider_options=dict(llm.get("provider_options") or {}),
+            prices={str(m): {k: float(v) for k, v in (p or {}).items()} for m, p in (llm.get("prices") or {}).items()},
             max_tokens=int(llm.get("max_tokens", 16000)),
             max_document_mb=float(llm.get("max_document_mb", 30.0)),
         ),

@@ -1,0 +1,62 @@
+# STARTER EXAMPLE. Document types, fields and prompts here are illustrative: align them with your
+# organization's own policies and procedures before relying on any result.
+# NOT LEGAL ADVICE: the review flags deviations from your own standard terms for a person to assess.
+#
+# Supplier agreement vs standard terms: each agreement (NDA or MSA) is checked against the version of
+# the company's standard terms it says it is based on.
+# Run from this folder:  docreview check   then   docreview run --once
+
+ecm:
+  adapter: local
+  options:
+    root: library           # every document lives under here; results go in *.docreview.json sidecars
+
+llm:
+  models:
+    default: claude-opus-5-5
+  effort:
+    classify: low
+    extract: low
+    review: high
+
+prompts:
+  dirs: [prompts, ../../shared_prompts]   # this pack's review prompts, then the shared starter prompts
+
+review:
+  post_comments: true
+  comment_min_severity: minor
+  dry_run: false
+
+audit:
+  path: logs/ai_calls.jsonl
+
+max_attempts: 3
+
+doc_types:
+  standard_terms:
+    description: >-
+      The company's standard contract terms: its approved positions (liability, term, governing law,
+      confidentiality and so on) that supplier agreements are expected to follow.
+    fields:
+      terms_version: {description: "The standard terms version identifier as printed."}
+      title: {description: "The title of the standard terms document."}
+      effective_date: {type: date, description: "The date this version became effective."}
+
+  supplier_agreement:
+    description: >-
+      A contract with a supplier, such as a non-disclosure agreement (NDA) or a master services agreement
+      (MSA), setting out the parties' obligations.
+    fields:
+      agreement_number: {description: "The agreement number as printed."}
+      agreement_type: {description: "The kind of agreement, for example NDA or MSA."}
+      counterparty: {description: "The supplier that is the other party to the agreement."}
+      terms_version: {description: "The version of the standard terms the agreement says it is based on, exactly as printed."}
+      effective_date: {type: date, description: "The date the agreement takes effect."}
+    review:
+      enabled: true
+      prompt: review/supplier_agreement
+      references:
+        - name: Standard terms
+          doc_type: standard_terms
+          required: true
+          match: {terms_version: "{terms_version}"}

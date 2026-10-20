@@ -14,6 +14,12 @@ When a document lands in your ECM, open-doc-review:
 
 A reference that arrives later triggers a re-review, and long PDFs are reviewed in page windows.
 
+> **Align it with your own policies.** The example document types, fields, prompts and severity levels
+> are starting points, not a standard. Before relying on any result, make them reflect your organization's
+> own policies, procedures, specifications and regulatory obligations; have the policy owners approve the
+> wording; and check the results with `docreview eval`. Every starter prompt carries this notice in its
+> header. Nothing in this project is legal, quality or regulatory advice.
+
 It never edits, moves, renames or deletes a document. The ECM port has no method that could. Every
 finding is advisory: a person decides what to do with it.
 
@@ -49,11 +55,20 @@ respected on the next pass.
 |---|---|---|
 | Document types and their fields | `docreview.yaml` → `doc_types` | invoice: `invoice_number`, `po_number`, `total` |
 | How to find references | `doc_types.<type>.review.references` | invoice → purchase order where `po_number` matches |
-| Prompts, in your own words and style | a folder of Markdown files | `prompts/review/invoice.md` |
+| Prompts, in your own words and style | a folder of Markdown files | `prompts/review/invoice.md`, started from `examples/prompt_templates/review_template.md` |
+| Documents with known problems, to check it works | `expected.yaml` + a test folder | `examples/generic/expected.yaml` |
 | A connection to your ECM | an adapter: `local`, `box`, or your own | see [docs/ADAPTERS.md](docs/ADAPTERS.md) |
 
-The project ships **no domain prompts**. The example in `examples/generic/` (supplier invoices
-checked against purchase orders) shows the shape; replace it with your own.
+What's in `examples/`:
+
+| Folder | What it is |
+|---|---|
+| `shared_prompts/` | Generic starter system, classification and extraction prompts, written for any document type. |
+| `prompt_templates/` | A fill-in review prompt template: checks, exclusions, severity, how to report. |
+| `generic/` | The quick-start example: an invoice checked against a purchase order, and a batch record against its master record. |
+| `starter_pack/` | Ready-to-copy examples: three-way invoice match, certificate of analysis against a specification, contract against standard terms, and a policy checklist with no references. |
+
+All of it is illustrative. Copy it, then replace the wording with your own.
 
 ## Quick start (no ECM needed)
 
@@ -65,6 +80,8 @@ cd examples/generic
 uv run docreview check                    # validates config, prompts and the adapter
 uv run docreview templates                # shows the metadata it will write (for Box/SharePoint: the setup script)
 uv run docreview run --once               # reviews the sample documents in library/
+uv run docreview estimate                 # rough tokens and cost before you run anything (no model calls)
+uv run docreview eval --runs 3            # scores the review against the planted problems (expected.yaml)
 ```
 
 ### What you'll see
@@ -160,6 +177,8 @@ What the statuses mean:
 - [docs/CONFIGURATION.md](docs/CONFIGURATION.md): every config key
 - [docs/METADATA.md](docs/METADATA.md): every metadata key written on a document, with examples, and how each ECM stores it
 - [docs/PROMPTS.md](docs/PROMPTS.md): writing your own prompts, and the variables available
+- [docs/WRITING_REVIEW_PROMPTS.md](docs/WRITING_REVIEW_PROMPTS.md): how to write review checks and severities that give consistent results
+- [docs/VALIDATION.md](docs/VALIDATION.md): a generic risk-assessment and validation starting point for regulated organizations
 - [docs/ADAPTERS.md](docs/ADAPTERS.md): writing an adapter for your ECM
 - [docs/BOX.md](docs/BOX.md): setting up the Box adapter
 - [docs/SHAREPOINT.md](docs/SHAREPOINT.md): setting up the SharePoint adapter (experimental)

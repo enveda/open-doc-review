@@ -1,6 +1,9 @@
 ---
 owner: example
 version: 1
+notice: >-
+  STARTER TEXT. These checks and severity definitions are illustrative. Align them with your organization's
+  own policies, procedures and regulatory obligations, and have the policy owner approve them, before use.
 ---
 Review the invoice "{{ document_name }}" against its purchase order.
 

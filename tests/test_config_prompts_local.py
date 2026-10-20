@@ -176,3 +176,14 @@ def test_unquoted_comma_in_description_is_caught(workspace):
 def test_example_descriptions_are_complete(workspace):
     cfg = load_config(workspace / "docreview.yaml")
     assert cfg.doc_type("purchase_order").fields[3].description == "Order total, before tax."
+
+
+def test_comments_are_not_sent_and_shared_prompts_resolve(workspace):
+    cfg = load_config(workspace / "docreview.yaml")
+    lib = PromptLibrary(cfg.prompt_dirs)
+    assert lib.get("classify").path.parent.name == "shared_prompts"
+    assert "notice" in lib.get("system").meta  # policy notice travels in front matter, not to the model
+    tmp = workspace / "prompts" / "note.md"
+    tmp.write_text("keep <!-- authors' note\nspanning lines --> this")
+    rendered = lib.get("note").render()
+    assert "authors" not in rendered and rendered.split() == ["keep", "this"]

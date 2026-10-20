@@ -1,0 +1,30 @@
+STANDARD OPERATING PROCEDURE                     Document No: SOP-0007     Version: 3
+Title: Issuing controlled copies of procedures
+Owner:
+Effective date: 2026-03-01                       Next review date: 2025-03-01
+
+1. Purpose
+   To describe how controlled copies of approved procedures are issued and withdrawn.
+
+2. Scope
+   All approved procedures held by the document-control office of Example Buyer Ltd.
+
+3. Definitions
+   Controlled Copy: a numbered copy of an approved procedure, issued to a named holder and
+   recorded in the issue log.
+   Issue Log: the register of every Controlled Copy issued and withdrawn.
+
+4. Procedure
+   4.1 On approval of a new version, print one Controlled Copy for each holder on the
+       distribution list and record each in the Issue Log.
+   4.2 Withdraw every master copy of the previous version and record the withdrawal in the
+       Issue Log.
+   4.3 Destroy withdrawn copies, or mark them "SUPERSEDED" if they must be kept.
+
+5. Records
+   The Issue Log is kept for 5 years.
+
+6. Revision history
+   Version 1 - 2022-02-01 - first issue
+   Version 2 - 2024-03-01 - added step 4.3
+   Version 3 - 2026-03-01 - updated the distribution steps

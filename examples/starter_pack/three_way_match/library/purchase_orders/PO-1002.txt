@@ -1,0 +1,11 @@
+PURCHASE ORDER                                   PO Number: PO-1002
+Buyer:    Example Buyer Ltd, 1 Sample Street, Exampletown
+Supplier: Sample Cabling Ltd
+Order date: 2026-09-05            Currency: EUR
+
+Line  Item                          Qty     Unit price   Line total
+1     Cable tie, 200 mm               500       0.04         20.00
+2     Cable clip, 10 mm               300       0.10         30.00
+
+Total (before tax): 50.00
+Terms: Net 30

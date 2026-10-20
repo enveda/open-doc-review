@@ -1,0 +1,20 @@
+# What a correct review of each sample document must report (see examples/generic/expected.yaml for
+# how `docreview eval` uses this file).
+
+documents:
+  inbox/SOP-0007.txt:
+    doc_type: procedure
+    outcome: major_findings
+    findings:
+      - name: Required Responsibilities section missing
+        match: ["responsibilit"]
+        severity_at_least: major
+      - name: No document owner named
+        match: ["owner"]
+        severity_at_least: major
+      - name: Next review date (2025-03-01) is before the effective date, so already past
+        match: ["2025-03-01"]
+        severity_at_least: major
+      - name: Defined term "Controlled Copy" called "master copy" in step 4.2
+        match: ["master copy"]
+        severity_at_least: minor

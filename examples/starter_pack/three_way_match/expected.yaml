@@ -1,0 +1,46 @@
+# What a correct review of each sample document must report (see examples/generic/expected.yaml for
+# how `docreview eval` uses this file).
+
+documents:
+  inbox/INV-3001.txt:
+    doc_type: invoice
+    outcome: blocking_findings
+    findings:
+      - name: Billed for washers not received (1,000 invoiced, 800 accepted)
+        match: ["800"]
+        severity_at_least: major
+      - name: Nut unit price differs from the purchase order
+        match: ["0.06", "0.05"]
+        severity_at_least: major
+      - name: Charge not on the purchase order
+        match: ["handling"]
+        severity_at_least: major
+      - name: Stated total does not add up (lines sum to 225.00)
+        match: ["230"]
+        severity_at_least: major
+
+  inbox/GR-2002.txt:
+    doc_type: goods_receipt
+    outcome: blocking_findings
+    findings:
+      - name: Receipt dated before the order
+        match: ["2026-09-03"]
+        severity_at_least: major
+      - name: More cable ties received than ordered
+        match: ["650", "500"]
+        severity_at_least: major
+      - name: Item received that is not on the purchase order
+        match: ["gland"]
+        severity_at_least: major
+      - name: Damaged clips counted as accepted
+        match: ["damaged"]
+        severity_at_least: major
+
+  purchase_orders/PO-1001.txt:
+    doc_type: purchase_order
+
+  purchase_orders/PO-1002.txt:
+    doc_type: purchase_order
+
+  goods_receipts/GR-2001.txt:
+    doc_type: goods_receipt

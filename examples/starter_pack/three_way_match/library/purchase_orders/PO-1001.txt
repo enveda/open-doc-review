@@ -1,0 +1,12 @@
+PURCHASE ORDER                                   PO Number: PO-1001
+Buyer:    Example Buyer Ltd, 1 Sample Street, Exampletown
+Supplier: Sample Fasteners Co.
+Order date: 2026-09-01            Currency: EUR
+
+Line  Item                          Qty     Unit price   Line total
+1     Bolt, 8 mm x 40 mm, steel     1,000       0.12        120.00
+2     Washer, 8 mm, steel           1,000       0.03         30.00
+3     Nut, 8 mm, steel              1,000       0.05         50.00
+
+Total (before tax): 200.00
+Terms: Net 30

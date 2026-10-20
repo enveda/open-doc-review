@@ -1,0 +1,12 @@
+STANDARD SUPPLIER TERMS                          Version: ST-2026.1
+Example Buyer Ltd - approved contract positions for supplier agreements
+Effective date: 2026-01-01
+
+1. Limitation of liability. Each party's total liability is capped at the fees paid or payable in the
+   12 months before the claim.
+2. Term. The initial term is at most 36 months. No automatic renewal: any renewal is agreed in writing.
+3. Governing law. The agreement is governed by the laws of Exampleland, and the courts of Exampleland
+   have exclusive jurisdiction.
+4. Confidentiality. Confidentiality obligations continue for 5 years after the agreement ends.
+
+Deviations from these positions need approval from the contracts team before signature.
