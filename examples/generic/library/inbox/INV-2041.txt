@@ -1,0 +1,13 @@
+INVOICE                                          Invoice No: INV-2041
+From:  Acme Widgets Co.
+To:    Example Buyer Ltd
+Invoice date: 2026-09-18          Your PO: PO-7730          Currency: USD
+
+Line  Item                     Qty   Unit price   Line total
+1     Widget, steel, 40 mm     550       2.10      1,155.00
+2     Bracket, zinc            200       0.95        190.00
+3     Delivery                   1      45.00         45.00
+4     Expedite fee               1      60.00         60.00
+
+Total (before tax): 1,460.00
+Payment due: 30 days

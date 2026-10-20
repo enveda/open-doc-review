@@ -1,0 +1,57 @@
+# Example: check supplier invoices against the purchase orders they cite.
+# Run from this folder:  docreview -c docreview.yaml check   then   docreview -c docreview.yaml run --once
+
+ecm:
+  adapter: local            # "box", or "your_package.module:YourAdapter" — see docs/ADAPTERS.md
+  options:
+    root: library           # every document lives under here; results go in *.docreview.json sidecars
+
+llm:
+  models:
+    default: claude-opus-5-5
+  effort:
+    classify: low
+    extract: low
+    review: high
+  fallbacks: default        # server-side refusal fallback (Claude API only); "off" elsewhere
+
+prompts:
+  dirs: [prompts]           # first folder wins; list your team's folder first to override
+
+review:
+  post_comments: true
+  comment_min_severity: minor
+  dry_run: false            # true = model calls are real, nothing is written to the ECM
+
+audit:
+  path: logs/ai_calls.jsonl
+
+max_attempts: 3             # a document that fails this often on one version is skipped until it changes
+
+doc_types:
+  purchase_order:
+    description: A buyer's order to a supplier listing items, quantities, agreed unit prices and terms.
+    fields:
+      po_number: {description: The purchase order number as printed.}
+      supplier: {description: Supplier company name.}
+      order_date: {type: date}
+      total: {type: number, description: Order total, before tax.}
+      currency: {description: ISO currency code, e.g. USD.}
+
+  invoice:
+    description: A supplier's request for payment for goods or services delivered.
+    fields:
+      invoice_number: {description: The invoice number as printed.}
+      po_number: {description: The purchase order number the invoice cites, exactly as printed.}
+      supplier: {description: Supplier company name.}
+      invoice_date: {type: date}
+      total: {type: number, description: Invoice total, before tax.}
+      currency: {description: ISO currency code, e.g. USD.}
+    review:
+      enabled: true
+      prompt: review/invoice        # prompts/review/invoice.md
+      references:
+        - name: Purchase order
+          doc_type: purchase_order
+          required: true
+          match: {po_number: "{po_number}"}   # PO's po_number = this invoice's po_number
