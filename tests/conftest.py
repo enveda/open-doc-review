@@ -53,11 +53,22 @@ class FakeModel:
         self.requests.append((request, model, effort))
         name = request.attachments[0].content.ref.name
         if request.task == "classify":
+            types = {"INV": "invoice", "EBR": "executed_batch_record", "MBR": "master_batch_record"}
             data = {
-                "doc_type": "invoice" if name.startswith("INV") else "purchase_order",
+                "doc_type": types.get(name[:3], "purchase_order"),
                 "confidence": "high",
                 "reason": "header",
             }
+        elif request.task == "extract" and name.startswith("EBR"):
+            data = {
+                "batch_number": "B24-0117",
+                "mbr_number": "MBR-0042",
+                "mbr_version": "3.0",
+                "product": "Examplamide Tablets 50 mg",
+                "manufacture_date": "2026-09-22",
+            }
+        elif request.task == "extract" and name.startswith("MBR"):
+            data = {"mbr_number": "mbr-0042", "mbr_version": "3.0", "product": "Examplamide Tablets 50 mg"}
         elif request.task == "extract":
             if name.startswith("INV"):
                 data = {
@@ -81,11 +92,22 @@ class FakeModel:
         return ModelResponse(data=data, model=model, usage={"input_tokens": 1, "output_tokens": 1})
 
 
+BATCH_FILES = ("inbox/EBR-B24-0117.txt", "master_batch_records/MBR-0042.txt")
+
+
 @pytest.fixture
-def workspace(tmp_path: Path) -> Path:
+def full_workspace(tmp_path: Path) -> Path:
     dest = tmp_path / "example"
     shutil.copytree(EXAMPLE, dest)
     return dest
+
+
+@pytest.fixture
+def workspace(full_workspace: Path) -> Path:
+    """The example with only the invoice and purchase order (most tests count calls on those two)."""
+    for rel in BATCH_FILES:
+        (full_workspace / "library" / rel).unlink()
+    return full_workspace
 
 
 @pytest.fixture

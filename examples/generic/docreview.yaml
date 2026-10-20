@@ -1,4 +1,5 @@
-# Example: check supplier invoices against the purchase orders they cite.
+# Example: check supplier invoices against their purchase orders, and executed batch records against
+# their master batch records.
 # Run from this folder:  docreview -c docreview.yaml check   then   docreview -c docreview.yaml run --once
 
 ecm:
@@ -55,3 +56,30 @@ doc_types:
           doc_type: purchase_order
           required: true
           match: {po_number: "{po_number}"}   # PO's po_number = this invoice's po_number
+
+  master_batch_record:
+    description: >-
+      A master batch record (MBR): the approved manufacturing instructions for a product, with steps,
+      quantities and limits, but no recorded results for a specific batch.
+    fields:
+      mbr_number: {description: The master batch record number as printed.}
+      mbr_version: {description: The version of the master batch record as printed.}
+      product: {description: Product name and strength.}
+
+  executed_batch_record:
+    description: >-
+      An executed batch record (EBR): the completed record of one batch, with the values actually recorded
+      at each step, and who recorded and verified them.
+    fields:
+      batch_number: {description: The batch number as printed.}
+      mbr_number: {description: The master batch record number the batch was made to.}
+      mbr_version: {description: The master batch record version the batch was made to.}
+      product: {description: Product name and strength.}
+      manufacture_date: {type: date}
+    review:
+      enabled: true
+      references:
+        - name: Master batch record
+          doc_type: master_batch_record
+          required: true
+          match: {mbr_number: "{mbr_number}", mbr_version: "{mbr_version}"}

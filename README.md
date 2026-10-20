@@ -68,17 +68,30 @@ uv run docreview run --once               # reviews the sample documents in libr
 
 ### What you'll see
 
-The example library holds a made-up supplier invoice (`library/inbox/INV-2041.txt`) and the purchase
-order it cites (`library/purchase_orders/PO-7730.txt`). The invoice has four planted mistakes, so you can
-check that the review catches them:
+The example library holds two made-up pairs of documents. Each document under review has four planted
+mistakes, so you can check that the review catches them.
+
+**A supplier invoice** (`library/inbox/INV-2041.txt`), checked against the purchase order it cites
+(`library/purchase_orders/PO-7730.txt`):
 
 1. It bills 550 widgets; the PO ordered 500.
 2. Brackets are charged at 0.95; the agreed price is 0.85.
 3. It adds a 60.00 expedite fee that is not on the PO.
 4. The total says 1,460.00; the lines add up to 1,450.00.
 
+**An executed batch record** (`library/inbox/EBR-B24-0117.txt`), checked against the master batch record it
+was made to (`library/master_batch_records/MBR-0042.txt`), found by MBR number and version:
+
+1. 10.40 kg of active ingredient was dispensed; the limit is 10.00 kg ± 1% (10.10 kg at most).
+2. The drying inlet air was 68 °C; the limit is 55–65 °C.
+3. The blend step has no second-person verification, which the MBR requires.
+4. The yield is 91.2%; the acceptable range is 95.0–102.0%.
+
+None of the out-of-limit results has a deviation recorded. Nothing in these files refers to a real product,
+company or batch.
+
 The local adapter has no ECM to write to, so after the run it saves results **in a new file next to each
-document**: `INV-2041.txt.docreview.json`. (With Box or SharePoint, the same results appear as metadata
+document**, such as `INV-2041.txt.docreview.json`. (With Box or SharePoint, the same results appear as metadata
 and comments on the file.) This file does not exist until you run the example. Trimmed, it looks like this;
 the wording of the findings varies from run to run:
 

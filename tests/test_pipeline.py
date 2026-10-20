@@ -255,3 +255,17 @@ def test_retry_limit_holds_when_failure_cannot_be_recorded(workspace, pipeline, 
         run_once(pipeline)
     classify_calls = sum(1 for r, _, _ in fake_model.requests if r.task == "classify")
     assert classify_calls == 2 * 3  # two documents, stopped at max_attempts each, in memory
+
+
+def test_batch_record_example_reviews_against_its_master_record(full_workspace, fake_model):
+    from docreview.cli import build
+    from docreview.config import load_config
+
+    pipeline = build(load_config(full_workspace / "docreview.yaml"), model_client=fake_model)
+    assert run_once(pipeline) == 0
+    ebr = _sidecar(full_workspace, "inbox/EBR-B24-0117.txt")
+    assert ebr[NS_CLASSIFICATION]["doc_type"] == "executed_batch_record"
+    assert ebr[NS_REVIEW]["references"] == {"Master batch record": "master_batch_records/MBR-0042.txt"}
+    review = [r for r, _, _ in fake_model.requests if r.task == "review" and "EBR" in r.attachments[0].content.ref.name]
+    assert [a.label for a in review[0].attachments] == ["Document under review", "Master batch record"]
+    assert "executed batch record" in review[0].instruction

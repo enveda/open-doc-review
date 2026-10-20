@@ -1,0 +1,18 @@
+MASTER BATCH RECORD                         MBR No: MBR-0042   Version: 3.0
+Product: Examplamide Tablets 50 mg          Batch size: 200,000 tablets
+Effective date: 2026-06-01                  Approved by: QA (on file)
+
+STEP  OPERATION              PARAMETER / INSTRUCTION                         LIMIT
+1     Dispense               Examplamide (active)                            10.00 kg  (+/- 1.0%)
+                             Microcrystalline cellulose                      28.00 kg  (+/- 2.0%)
+                             Magnesium stearate                               0.40 kg  (+/- 2.0%)
+2     Granulate              Impeller speed                                  150-200 rpm
+3     Dry                    Inlet air temperature                           55-65 C
+                             Loss on drying at end                           NMT 2.0%
+4     Blend                  Blend time after lubricant addition             15 min (+/- 1 min)
+5     Compress               Tablet weight (mean of 10)                      195-205 mg
+                             Hardness                                        8-12 kP
+6     Yield                  Theoretical 200,000 tablets                     Acceptable 95.0-102.0%
+
+Every recorded value requires the operator entry and a second-person verification.
+Any result outside its limit requires a deviation number recorded at the step.

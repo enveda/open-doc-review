@@ -1,0 +1,18 @@
+EXECUTED BATCH RECORD                       Batch No: B24-0117
+Product: Examplamide Tablets 50 mg          Master record: MBR-0042 Version 3.0
+Manufacture date: 2026-09-22                Batch size: 200,000 tablets
+
+STEP  OPERATION   RECORDED                                         OPERATOR  VERIFIED BY
+1     Dispense    Examplamide (active)          10.40 kg           J.D.      R.K.
+                  Microcrystalline cellulose    28.10 kg           J.D.      R.K.
+                  Magnesium stearate             0.40 kg           J.D.      R.K.
+2     Granulate   Impeller speed                175 rpm            J.D.      R.K.
+3     Dry         Inlet air temperature         68 C               J.D.      R.K.
+                  Loss on drying at end         1.6%               J.D.      R.K.
+4     Blend       Blend time after lubricant    15 min             J.D.
+5     Compress    Tablet weight (mean of 10)    201 mg             M.S.      R.K.
+                  Hardness                      10 kP              M.S.      R.K.
+6     Yield       Tablets produced              182,400            M.S.      R.K.
+                  Yield                         91.2%              M.S.      R.K.
+
+Deviations recorded: none
