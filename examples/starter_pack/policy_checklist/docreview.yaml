@@ -1,0 +1,48 @@
+# STARTER EXAMPLE. Document types, fields and prompts here are illustrative: align them with your
+# organization's own policies and procedures before relying on any result.
+#
+# Policy / SOP checklist: a standalone review with NO reference documents. Each procedure is checked
+# against the document-control rules written in its review prompt.
+# Run from this folder:  docreview check   then   docreview run --once
+
+ecm:
+  adapter: local
+  options:
+    root: library           # every document lives under here; results go in *.docreview.json sidecars
+
+llm:
+  models:
+    default: claude-opus-5-5
+  effort:
+    classify: low
+    extract: low
+    review: high
+
+prompts:
+  dirs: [prompts, ../../shared_prompts]   # this pack's review prompts, then the shared starter prompts
+
+review:
+  post_comments: true
+  comment_min_severity: minor
+  dry_run: false
+
+audit:
+  path: logs/ai_calls.jsonl
+
+max_attempts: 3
+
+doc_types:
+  procedure:
+    description: >-
+      A controlled procedure or policy document (for example a standard operating procedure, SOP): the
+      approved way a task is done, with an owner, an effective date and a review date.
+    fields:
+      document_number: {description: "The document number as printed."}
+      title: {description: "The document title."}
+      version: {description: "The version as printed."}
+      owner: {description: "The person or role named as the document owner."}
+      effective_date: {type: date, description: "The date this version became effective."}
+      next_review_date: {type: date, description: "The date by which the document must next be reviewed."}
+    review:
+      enabled: true
+      prompt: review/procedure          # no references: everything is checked from the document itself

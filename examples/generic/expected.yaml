@@ -1,0 +1,48 @@
+# What a correct review of each sample document must report. Used by `docreview eval`, which reviews
+# a temporary copy of library/ and checks the findings against this list, so you can see whether a
+# change to a prompt, model or setting made the results better or worse.
+#
+# A finding counts as caught when ONE finding contains every string in `match` (case-insensitive,
+# in its title or text) and has at least `severity_at_least`. Choose strings that any correct wording
+# must contain, such as the values involved, not phrasing.
+
+documents:
+  inbox/INV-2041.txt:
+    doc_type: invoice
+    outcome: blocking_findings
+    findings:
+      - name: Quantity over the ordered amount
+        match: ["550", "500"]
+        severity_at_least: major
+      - name: Unit price differs from the agreed price
+        match: ["0.95", "0.85"]
+        severity_at_least: major
+      - name: Charge not on the purchase order
+        match: ["expedite"]
+        severity_at_least: major
+      - name: Total does not add up
+        match: ["1,460"]
+        severity_at_least: major
+
+  inbox/EBR-B24-0117.txt:
+    doc_type: executed_batch_record
+    outcome: blocking_findings
+    findings:
+      - name: Active ingredient over the dispensing limit
+        match: ["10.40"]
+        severity_at_least: major
+      - name: Drying temperature over the limit
+        match: ["68"]
+        severity_at_least: major
+      - name: Missing second-person verification at blending
+        match: ["blend", "verif"]
+        severity_at_least: minor
+      - name: Yield below the acceptable range
+        match: ["91.2"]
+        severity_at_least: major
+
+  purchase_orders/PO-7730.txt:
+    doc_type: purchase_order
+
+  master_batch_records/MBR-0042.txt:
+    doc_type: master_batch_record

@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "open-doc-review"
+abstract: "Advisory AI document review that bolts onto the content-management system (ECM) you already use."
+authors:
+  - family-names: "Martin"
+    given-names: "Andrew"
+    affiliation: "Enveda"
+repository-code: "https://github.com/enveda/open-doc-review"
+license: MIT
+version: "0.1.0"

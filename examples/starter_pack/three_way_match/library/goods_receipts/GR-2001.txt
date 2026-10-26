@@ -1,0 +1,12 @@
+GOODS RECEIPT NOTE                               Receipt No: GR-2001
+Received at: Example Buyer Ltd, Goods-in, 1 Sample Street, Exampletown
+Supplier: Sample Fasteners Co.        PO Number: PO-1001
+Receipt date: 2026-09-10
+
+Line  Item                          Received   Rejected   Accepted
+1     Bolt, 8 mm x 40 mm, steel        1,000          0      1,000
+2     Washer, 8 mm, steel                800          0        800
+3     Nut, 8 mm, steel                 1,000          0      1,000
+
+Note: washers short-delivered; balance of 200 on back order.
+Received by: A. Receiver

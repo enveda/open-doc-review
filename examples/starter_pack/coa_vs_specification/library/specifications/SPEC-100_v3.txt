@@ -1,0 +1,12 @@
+MATERIAL SPECIFICATION                          Spec No: SPEC-100      Version: 3
+Material: Examplite powder (fictional example material)
+Effective date: 2026-02-01
+
+Test                     Method        Acceptance limit
+Appearance               Visual        White to off-white powder
+Assay                    TM-01         98.0 - 102.0 %
+Loss on drying           TM-02         Not more than 0.5 %
+Residue on ignition      TM-03         Not more than 0.1 %
+Particle size (D90)      TM-04         Not more than 150 um
+
+Approved by: Example Quality Unit

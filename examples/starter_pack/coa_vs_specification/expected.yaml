@@ -1,0 +1,26 @@
+# What a correct review of each sample document must report (see examples/generic/expected.yaml for
+# how `docreview eval` uses this file).
+
+documents:
+  inbox/COA-5001.txt:
+    doc_type: certificate_of_analysis
+    outcome: blocking_findings
+    findings:
+      - name: Assay below the limit (97.6 % against 98.0 - 102.0 %)
+        match: ["97.6"]
+        severity_at_least: major
+      - name: Loss on drying reported in a different unit (mg/g against %)
+        match: ["mg/g"]
+        severity_at_least: major
+      - name: Particle size (D90) required by the specification but not reported
+        match: ["particle"]
+        severity_at_least: major
+      - name: Lot number inconsistent (LOT-A17 in the header, LOT-A71 in the conclusion)
+        match: ["A17", "A71"]
+        severity_at_least: major
+
+  specifications/SPEC-100_v2.txt:
+    doc_type: specification
+
+  specifications/SPEC-100_v3.txt:
+    doc_type: specification

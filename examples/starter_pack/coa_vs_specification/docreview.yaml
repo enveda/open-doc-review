@@ -1,0 +1,63 @@
+# STARTER EXAMPLE. Document types, fields and prompts here are illustrative: align them with your
+# organization's own policies and procedures before relying on any result.
+#
+# Certificate of analysis vs specification: each certificate is checked against the exact
+# specification version it cites.
+# Run from this folder:  docreview check   then   docreview run --once
+
+ecm:
+  adapter: local
+  options:
+    root: library           # every document lives under here; results go in *.docreview.json sidecars
+
+llm:
+  models:
+    default: claude-opus-5-5
+  effort:
+    classify: low
+    extract: low
+    review: high
+
+prompts:
+  dirs: [prompts, ../../shared_prompts]   # this pack's review prompts, then the shared starter prompts
+
+review:
+  post_comments: true
+  comment_min_severity: minor
+  dry_run: false
+
+audit:
+  path: logs/ai_calls.jsonl
+
+max_attempts: 3
+
+doc_types:
+  specification:
+    description: >-
+      A material specification: the approved list of tests for a material, with the acceptance limit
+      and unit for each test.
+    fields:
+      spec_number: {description: "The specification number as printed."}
+      spec_version: {description: "The specification version as printed."}
+      material: {description: "The material the specification covers."}
+      effective_date: {type: date, description: "The date this version became effective."}
+
+  certificate_of_analysis:
+    description: >-
+      A certificate of analysis: the test results for one lot of a material, issued by the producer or a
+      testing laboratory.
+    fields:
+      certificate_number: {description: "The certificate number as printed."}
+      material: {description: "The material tested."}
+      lot_number: {description: "The lot or batch number of the material tested, as printed."}
+      spec_number: {description: "The specification number the results are reported against, exactly as printed."}
+      spec_version: {description: "The specification version cited, exactly as printed."}
+      test_date: {type: date, description: "The date testing was completed."}
+    review:
+      enabled: true
+      prompt: review/certificate_of_analysis
+      references:
+        - name: Specification
+          doc_type: specification
+          required: true
+          match: {spec_number: "{spec_number}", spec_version: "{spec_version}"}   # the cited version only

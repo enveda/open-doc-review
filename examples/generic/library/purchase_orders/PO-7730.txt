@@ -1,0 +1,12 @@
+PURCHASE ORDER                                   PO Number: PO-7730
+Buyer:    Example Buyer Ltd, 1 Sample Street, Exampletown
+Supplier: Acme Widgets Co.
+Order date: 2026-09-01            Currency: USD
+
+Line  Item                     Qty   Unit price   Line total
+1     Widget, steel, 40 mm     500       2.10      1,050.00
+2     Bracket, zinc            200       0.85        170.00
+3     Delivery                   1      45.00         45.00
+
+Total (before tax): 1,265.00
+Terms: Net 30

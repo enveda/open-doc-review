@@ -1,0 +1,23 @@
+# What a correct review of each sample document must report (see examples/generic/expected.yaml for
+# how `docreview eval` uses this file).
+
+documents:
+  inbox/MSA-0417.txt:
+    doc_type: supplier_agreement
+    outcome: major_findings
+    findings:
+      - name: Liability cap measured over 24 months instead of 12
+        match: ["24"]
+        severity_at_least: major
+      - name: Initial term of 60 months exceeds the 36-month maximum
+        match: ["60"]
+        severity_at_least: major
+      - name: Governed by the laws of Otherland, not Exampleland
+        match: ["otherland"]
+        severity_at_least: major
+      - name: Confidentiality lasts 18 months instead of 5 years
+        match: ["18"]
+        severity_at_least: major
+
+  standard_terms/ST-2026.1.txt:
+    doc_type: standard_terms

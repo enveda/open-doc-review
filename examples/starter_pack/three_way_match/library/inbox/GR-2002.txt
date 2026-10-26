@@ -1,0 +1,11 @@
+GOODS RECEIPT NOTE                               Receipt No: GR-2002
+Received at: Example Buyer Ltd, Goods-in, 1 Sample Street, Exampletown
+Supplier: Sample Cabling Ltd          PO Number: PO-1002
+Receipt date: 2026-09-03
+
+Line  Item                          Received   Damaged    Accepted
+1     Cable tie, 200 mm                  650          0        650
+2     Cable clip, 10 mm                  300         20        300
+3     Cable gland, 20 mm                  50          0         50
+
+Received by: B. Receiver
