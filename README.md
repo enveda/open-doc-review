@@ -184,6 +184,7 @@ What the statuses mean:
 - [docs/SHAREPOINT.md](docs/SHAREPOINT.md): setting up the SharePoint adapter (experimental)
 - Example adapters: [Veeva Vault](docs/VEEVA_VAULT.md), [M-Files](docs/MFILES.md), [Alfresco](docs/ALFRESCO.md), [Amazon S3](docs/S3.md)
 - [docs/DEPLOY.md](docs/DEPLOY.md): running it as a service, rolling it out, cost
+- [CDP methods paper, Supplementary Information (PDF)](docs/Supplementary_Enveda-Anthropic_CDP_methods_paper.pdf): the production system this project's design comes from, including how it compares with open-doc-review (Supplementary Note 1.7)
 
 ## Before you use it on real documents
 
