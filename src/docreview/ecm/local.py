@@ -126,7 +126,11 @@ class LocalFolderAdapter:
         wanted = {k: _norm(v) for k, v in criteria.items()}
         hits = []
         for p in self._documents(under):
-            meta = self._sidecar(p)
+            try:
+                meta = self._sidecar(p)
+            except (OSError, ValueError) as exc:  # same as poll: one bad sidecar must not break every lookup
+                log.warning("skipping %s in find: unreadable sidecar (%s)", p, exc)
+                continue
             if (meta.get(NS_CLASSIFICATION) or {}).get("doc_type") != doc_type:
                 continue
             fields = meta.get(NS_FIELDS) or {}

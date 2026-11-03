@@ -88,6 +88,19 @@ def test_local_find_is_normalised_and_scoped(workspace):
     assert a.find("invoice", {"po_number": "PO-7730"}) == []
 
 
+def test_local_find_skips_an_unreadable_sidecar(workspace, caplog):
+    a = LocalFolderAdapter(root="library", _base_dir=str(workspace))
+    po = a.get("purchase_orders/PO-7730.txt")
+    a.write_metadata(po, "classification", {"doc_type": "purchase_order"})
+    a.write_metadata(po, "fields", {"po_number": "PO-7730"})
+    # Another document's sidecar, hand-edited (e.g. to request a re-review) and left invalid.
+    broken = workspace / "library" / "inbox" / "INV-2041.txt.docreview.json"
+    broken.write_text('{"review": {"requested": true,}}', encoding="utf-8")
+    with caplog.at_level("WARNING", logger="docreview"):
+        assert [r.id for r in a.find("purchase_order", {"po_number": "PO-7730"})] == [po.id]
+    assert "INV-2041.txt" in caplog.text and "unreadable sidecar" in caplog.text
+
+
 def test_local_adapter_rejects_paths_outside_root(workspace):
     a = LocalFolderAdapter(root="library", _base_dir=str(workspace))
     with pytest.raises(FileNotFoundError):
